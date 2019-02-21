@@ -4,9 +4,9 @@ CFLAGS := -Wall -Wextra -std=c++17 -ggdb
 BINDIR  := bin
 SRCDIR  := src
 INCLUDE := 
-LIB		:= /usr/local/lib/
+LIB		:= -L/usr/local/lib/
 
-LIBRARIES	:= -lhl++ -l:libboost_filesystem.a -l:libboost_system.a
+LIBRARIES	:= -lhl++ -lstdc++fs
 EXECUTABLE	:= main
 
 
@@ -17,7 +17,7 @@ run: clean all
 	./$(BINDIR)/$(EXECUTABLE)
 
 $(BINDIR)/$(EXECUTABLE): $(SRCDIR)/*.cpp
-	$(CC) $(CFLAGS) $(INCLUDE) -L$(LIB) $^ -o $@ $(LIBRARIES)
+	$(CC) $(CFLAGS) $(INCLUDE) $(LIB) $^ -o $@ $(LIBRARIES)
 
 clean:
 	-rm $(BINDIR)/*

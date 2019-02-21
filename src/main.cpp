@@ -1,16 +1,16 @@
 #include <iostream>
 #include <hashlib++/hashlibpp.h>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 using std::cout;
 using std::endl;
-using namespace boost::filesystem;
+using namespace std::filesystem;
 
 int main(int argc, char *argv[])
 {
 
     if (argc < 2)
     {
-        cout << "Usage: tut3 path\n";
+        cout << "Usage: main path\n";
         return 1;
     }
 
@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
             {
                 cout << p << " is a directory containing:\n";
 
-                for (directory_entry &x : directory_iterator(p))
+                for (const directory_entry &x : directory_iterator(p))
                     cout << "    " << x.path() << '\n';
             }
             else

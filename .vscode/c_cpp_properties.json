@@ -4,7 +4,8 @@
             "name": "Linux",
             "includePath": [
                 "${default}"
-            ]
+            ],
+            "cppStandard": "c++17"
         }
     ],
     "version": 4
