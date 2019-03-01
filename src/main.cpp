@@ -10,11 +10,21 @@ using std::endl;
 using std::string;
 using std::unordered_map;
 using std::vector;
+namespace ch = std::chrono;
 namespace fs = std::filesystem;
 
 hashwrapper *myWrapper;
 unordered_map<string, vector<string>> dedup_table;
 
+/*
+* Calculates hash values of files and stores them
+* in the deduplication table.
+* 
+* Path can be a file or a directory.
+* If it is a file, its hash is calculated.
+* If it is a directory, the hash of each file in the
+* directory (non-recursively) will be calculated.
+*/
 void gather_hashes(fs::path path)
 {
     try
@@ -73,19 +83,18 @@ void gather_hashes(fs::path path)
 
 int main(int argc, char *argv[])
 {
-
     if (argc < 2)
     {
         cout << "Usage: dedup PATH\n";
         return 1;
     }
+    
+    std::clock_t start = std::clock();
 
-    cout << argv[1] << endl;
     fs::path path(argv[1]);
     myWrapper = new md5wrapper();
 
     gather_hashes(path);
-
     while (true)
     {
         cout << "Input another path to be included in "
@@ -117,4 +126,8 @@ int main(int argc, char *argv[])
 
     delete myWrapper;
     myWrapper = NULL;
+
+    double time = (std::clock() - start) / (double)CLOCKS_PER_SEC;
+    std::cout << "Execution took " << time << " seconds." << std::endl;
+
 }
