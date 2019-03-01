@@ -7,7 +7,7 @@ INCLUDE :=
 LIB		:= -L/usr/local/lib/
 
 LIBRARIES	:= -lhl++ -lstdc++fs
-EXECUTABLE	:= main
+EXECUTABLE	:= dedup
 
 
 all: $(BINDIR)/$(EXECUTABLE)

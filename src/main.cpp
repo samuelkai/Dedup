@@ -45,15 +45,7 @@ int main(int argc, char *argv[])
                 try
                 {
                     string hash = myWrapper->getHashFromFile(p);
-                    // If the hash already exists
-                    if (dedup_table.find(hash) != dedup_table.end())
-                    {
-                        dedup_table[hash].push_back(fs::canonical(p));
-                    }
-                    else
-                    {
-                        dedup_table[hash] = vector<string>{fs::canonical(p)};
-                    }
+                    dedup_table[hash].push_back(fs::canonical(p));
                     cout << "   " << hash << endl;
                 }
                 catch (hlException &e)
@@ -73,15 +65,7 @@ int main(int argc, char *argv[])
                         try
                         {
                             string hash = myWrapper->getHashFromFile(x.path());
-                            // If the hash already exists
-                            if (dedup_table.find(hash) != dedup_table.end())
-                            {
-                                dedup_table[hash].push_back(fs::canonical(x.path()));
-                            }
-                            else
-                            {
-                                dedup_table[hash] = vector<string>{fs::canonical(x.path())};
-                            }
+                            dedup_table[hash].push_back(fs::canonical(x.path()));
                             cout << "   " << hash << endl;
                         }
                         catch (hlException &e)
