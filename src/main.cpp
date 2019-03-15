@@ -13,9 +13,6 @@ using std::vector;
 namespace ch = std::chrono;
 namespace fs = std::filesystem;
 
-hashwrapper *myWrapper;
-unordered_map<string, vector<string>> dedup_table;
-
 /*
 * Calculates hash values of files and stores them
 * in the deduplication table.
@@ -25,8 +22,9 @@ unordered_map<string, vector<string>> dedup_table;
 * If it is a directory, the hash of each file in the
 * directory (non-recursively) will be calculated.
 */
-void gather_hashes(fs::path path)
+void gather_hashes(const fs::path path, unordered_map<string, vector<string>> &dedup_table)
 {
+    md5wrapper myWrapper;
     try
     {
         if (fs::exists(path))
@@ -35,7 +33,7 @@ void gather_hashes(fs::path path)
             {
                 try
                 {
-                    string hash = myWrapper->getHashFromFile(path);
+                    string hash = myWrapper.getHashFromFile(path);
                     dedup_table[hash].push_back(fs::canonical(path));
                 }
                 catch (hlException &e)
@@ -51,7 +49,7 @@ void gather_hashes(fs::path path)
                     {
                         try
                         {
-                            string hash = myWrapper->getHashFromFile(x.path());
+                            string hash = myWrapper.getHashFromFile(x.path());
                             dedup_table[hash].push_back(fs::canonical(x.path()));
                         }
                         catch (hlException &e)
@@ -92,9 +90,9 @@ int main(int argc, char *argv[])
     std::clock_t start = std::clock();
 
     fs::path path(argv[1]);
-    myWrapper = new md5wrapper();
+    unordered_map<string, vector<string>> dedup_table;
 
-    gather_hashes(path);
+    gather_hashes(path, dedup_table);
     while (true)
     {
         cout << "Input another path to be included in "
@@ -107,7 +105,7 @@ int main(int argc, char *argv[])
             break;
         }
 
-        gather_hashes(fs::path(input));
+        gather_hashes(fs::path(input), dedup_table);
     }
 
     cout << endl
@@ -123,9 +121,6 @@ int main(int argc, char *argv[])
         }
         cout << endl;
     }
-
-    delete myWrapper;
-    myWrapper = NULL;
 
     double time = (std::clock() - start) / (double)CLOCKS_PER_SEC;
     std::cout << "Execution took " << time << " seconds." << std::endl;
