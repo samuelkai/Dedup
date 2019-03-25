@@ -15,6 +15,6 @@
 * directory (non-recursively) will be calculated.
 */
 void gather_hashes(const std::filesystem::path path, 
-std::unordered_map<std::string, std::vector<std::string>> &dedup_table);
+std::unordered_map<uint64_t, std::vector<std::string>> &dedup_table);
 
 #endif /* GATHER_HASHES_H */

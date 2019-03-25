@@ -20,11 +20,17 @@ int main(int argc, char *argv[])
         cout << "Usage: dedup PATH\n";
         return 1;
     }
-    
+
+    const uint64_t testi = 123123ull;
+    const uint64_t * p = &testi;
+
+    cout << sizeof(testi) << endl;
+    cout << &p[0] << " " << &p[1] << endl;
+
     std::clock_t start = std::clock();
 
     fs::path path(argv[1]);
-    unordered_map<string, vector<string>> dedup_table;
+    unordered_map<uint64_t, vector<string>> dedup_table;
 
     gather_hashes(path, dedup_table);
     while (true)
