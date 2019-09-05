@@ -6,7 +6,8 @@
                 "${default}"
             ],
             "cppStandard": "c++17",
-            "compilerPath": "/usr/bin/g++-8"
+            "compilerPath": "/usr/bin/g++-8",
+            "compileCommands": "${workspaceFolder}/build/compile_commands.json"
         }
     ],
     "version": 4

@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include "gather_hashes.h"
+#include "catch2/catch.hpp"
 using std::cin;
 using std::cout;
 using std::endl;

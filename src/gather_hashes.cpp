@@ -1,9 +1,11 @@
 #include <sys/stat.h>
-#include <hashlib++/hashlibpp.h>
+#include <unordered_map>
+#include <vector>
+#include <filesystem>
 #include <iostream>
 #include <cstring>
-#include "MurmurHash3.h"
-#include "gather_hashes.h"
+#include <hashlib++/hashlibpp.h>
+#include "MurmurHash3/MurmurHash3.h"
 using std::cin;
 using std::cout;
 using std::endl;
@@ -14,7 +16,6 @@ namespace fs = std::filesystem;
 
 void gather_hashes(const fs::path path, unordered_map<uint64_t, vector<string>> &dedup_table)
 {
-    md5wrapper myWrapper;
     try
     {
         if (fs::exists(path))
