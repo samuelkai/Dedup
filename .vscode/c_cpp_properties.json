@@ -5,7 +5,8 @@
             "includePath": [
                 "${default}"
             ],
-            "cppStandard": "c++17"
+            "cppStandard": "c++17",
+            "compilerPath": "/usr/bin/g++-8"
         }
     ],
     "version": 4

@@ -76,7 +76,7 @@ void gather_hashes(const fs::path path, unordered_map<uint64_t, vector<string>> 
 
                             // copy the file into the buffer:
                             result = fread (buffer,1,lSize,pFile);
-                            if (result != lSize) {fputs ("Reading error",stderr); exit (3);}
+                            if (result != (size_t)lSize) {fputs ("Reading error",stderr); exit (3);}
 
                             fclose (pFile);
                             MurmurHash3_x64_128(buffer, lSize, seed, hash_otpt);

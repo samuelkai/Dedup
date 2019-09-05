@@ -64,5 +64,4 @@ int main(int argc, char *argv[])
 
     double time = (std::clock() - start) / (double)CLOCKS_PER_SEC;
     std::cout << "Execution took " << time << " seconds." << std::endl;
-
 }
