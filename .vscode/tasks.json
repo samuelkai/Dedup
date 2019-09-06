@@ -2,25 +2,68 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Build C++ project",
+            "label": "cmake",
             "type": "shell",
+            "options": {
+                "cwd": "${workspaceRoot}/build"
+            },
+            "group": "build",
+            "command": "cmake",
+            "args": [
+                "${workspaceRoot}"
+            ],
+            "presentation": {
+                "reveal": "always"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+
+        {
+            "label": "make",
+            "type": "shell",
+            "options": {
+                "cwd": "${workspaceRoot}/build"
+            },
+            "group": "build",
+            "command": "make",
+            "presentation": {
+                "reveal": "always"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+
+        {
+            "label": "cmake and make",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "cmake",
+                "make"
+            ],
             "group": {
                 "kind": "build",
                 "isDefault": true
-            },
-            "command": "make",
+            }
         },
+
         {
-            "label": "Build & run C++ project",
+            "label": "build and test",
             "type": "shell",
+            "options": {
+                "cwd": "${workspaceRoot}/build"
+            },
+            "command": "./unit_tests",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "cmake and make",
+            ],
             "group": {
                 "kind": "test",
                 "isDefault": true
-            },
-            "command": "make",
-            "args": [
-                "run"
-            ]
+            }
         }
     ]
 }
