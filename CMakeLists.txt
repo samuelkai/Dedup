@@ -4,25 +4,78 @@ project(dedup LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(SOURCE_DIR ${PROJECT_SOURCE_DIR}/src)
+set(INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
+set(TEST_DIR ${PROJECT_SOURCE_DIR}/test)
+
+# A library for source files other than main
+#-------------------------------------------------
+add_library(GatherHashes
+    ${SOURCE_DIR}/gather_hashes.cpp
+    ${SOURCE_DIR}/gather_hashes.h
+    ${SOURCE_DIR}/MurmurHash3.cpp
+)
+
+target_include_directories(GatherHashes PRIVATE
+    ${INCLUDE_DIR}
+)
+
+target_link_libraries(GatherHashes
+    stdc++fs
+)
+#-------------------------------------------------
+
+
+# Main executable
+#-------------------------------------------------
 add_executable(${PROJECT_NAME}
-    src/main.cpp
-    src/gather_hashes.cpp
-    src/MurmurHash3.cpp
+    ${SOURCE_DIR}/main.cpp
 )
 
-target_include_directories(${PROJECT_NAME}
-    PRIVATE
-        ${PROJECT_SOURCE_DIR}/include
+target_link_libraries(${PROJECT_NAME}
+    stdc++fs
+    GatherHashes
+)
+#-------------------------------------------------
+
+
+# Catch library
+#-------------------------------------------------
+add_library(Catch INTERFACE)
+
+target_include_directories(Catch INTERFACE
+    ${INCLUDE_DIR}/catch2
+)
+#-------------------------------------------------
+
+
+# Catch's main as a separate object file, so it
+# doesn't have to be recompiled
+#-------------------------------------------------
+
+add_library(test_main OBJECT
+    ${TEST_DIR}/test_main.cpp
+)
+#-------------------------------------------------
+
+
+# The actual unit tests
+#-------------------------------------------------
+add_executable(unit_tests
+    ${TEST_DIR}/unit_tests.cpp
+    $<TARGET_OBJECTS:test_main>
 )
 
-target_link_libraries(${PROJECT_NAME} stdc++fs)
+target_include_directories(unit_tests PRIVATE
+    ${SOURCE_DIR}
+)
 
-add_subdirectory(include/catch2)
+target_link_libraries(unit_tests
+    Catch
+    GatherHashes
+)
+
 enable_testing()
 
-add_executable(unit_tests test/testi.cpp)
-target_link_libraries(unit_tests
-    Catch2::Test
-)
-
 add_test(test_all unit_tests)
+#-------------------------------------------------
