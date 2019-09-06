@@ -37,7 +37,7 @@
         },
 
         {
-            "label": "cmake and make",
+            "label": "build",
             "dependsOrder": "sequence",
             "dependsOn": [
                 "cmake",
@@ -58,7 +58,7 @@
             "command": "./unit_tests",
             "dependsOrder": "sequence",
             "dependsOn": [
-                "cmake and make",
+                "build",
             ],
             "group": {
                 "kind": "test",

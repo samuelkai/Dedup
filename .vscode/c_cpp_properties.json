@@ -4,6 +4,7 @@
             "name": "Linux",
             "includePath": [
                 "${default}",
+                "${workspaceFolder}/include",
                 "${workspaceFolder}/src"
             ],
             "cppStandard": "c++17",

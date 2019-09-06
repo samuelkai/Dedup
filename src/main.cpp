@@ -16,22 +16,28 @@ namespace fs = std::filesystem;
 
 int main(int argc, char *argv[])
 {
-    if (argc < 2)
-    {
-        cout << "Usage: dedup PATH\n";
-        return 1;
-    }
-
+/* 
     const uint64_t testi = 123123ull;
     const uint64_t * p = &testi;
 
     cout << sizeof(testi) << endl;
     cout << &p[0] << " " << &p[1] << endl;
+*/
+    string input;
+    if (argc < 2)
+    {
+        cout << "Input a path (file or directory) to "
+        "be deduplicated" << endl;
+        getline(cin, input);
+    }
+    else
+    {
+        input = argv[1];
+    }
+    fs::path path(input);
 
-    std::clock_t start = std::clock();
-
-    fs::path path(argv[1]);
     unordered_map<uint64_t, vector<string>> dedup_table;
+    std::clock_t start = std::clock();
 
     gather_hashes(path, dedup_table);
     while (true)
