@@ -58,7 +58,7 @@ void gather_hashes(const fs::path path, unordered_map<uint64_t, vector<string>> 
                             uint32_t seed = 1;
                             uint64_t hash_otpt[2];  // allocate 128 bits
                             FILE *pFile;
-                            long lSize;
+                            uintmax_t fSize;
                             size_t result;
                             if((pFile = fopen(dir_entry.path().c_str(), "rb")) == NULL)
                             {
@@ -67,20 +67,25 @@ void gather_hashes(const fs::path path, unordered_map<uint64_t, vector<string>> 
                             }
                             
                             // obtain file size:
-                            fseek (pFile , 0 , SEEK_END);
-                            lSize = ftell (pFile);
-                            rewind (pFile);
+                            try
+                            {
+                                fSize = fs::file_size(dir_entry);
+                            }
+                            catch(fs::filesystem_error& e)
+                            {
+                                std::cerr << e.what() << '\n';
+                            }
 
                             // allocate memory to contain the whole file:
-                            char *buffer = new char[lSize];
+                            char *buffer = new char[fSize];
                             if (buffer == NULL) {fputs ("Memory error",stderr); exit (2);}
 
                             // copy the file into the buffer:
-                            result = fread (buffer,1,lSize,pFile);
-                            if (result != (size_t)lSize) {fputs ("Reading error",stderr); exit (3);}
+                            result = fread (buffer,1,fSize,pFile);
+                            if (result != (size_t)fSize) {fputs ("Reading error",stderr); exit (3);}
 
                             fclose (pFile);
-                            MurmurHash3_x64_128(buffer, lSize, seed, hash_otpt);
+                            MurmurHash3_x64_128(buffer, fSize, seed, hash_otpt);
                             delete[] buffer;
                             dedup_table[hash_otpt[0]].push_back(fs::canonical(dir_entry));
                         }
