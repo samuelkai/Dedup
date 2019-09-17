@@ -37,9 +37,12 @@ int main(int argc, char *argv[])
     fs::path path(input);
 
     unordered_map<uint64_t, vector<string>> dedup_table;
-    std::clock_t start = std::clock();
+    auto start_time = ch::steady_clock::now();
 
     gather_hashes(path, dedup_table);
+
+    ch::duration<double, std::milli> elapsed_time = ch::steady_clock::now() - start_time;
+
     while (true)
     {
         cout << "Input another path to be included in "
@@ -52,7 +55,9 @@ int main(int argc, char *argv[])
             break;
         }
 
+        auto additional_time = ch::steady_clock::now();
         gather_hashes(fs::path(input), dedup_table);
+        elapsed_time += ch::steady_clock::now() - additional_time;
     }
 
     cout << endl
@@ -69,6 +74,5 @@ int main(int argc, char *argv[])
         cout << endl;
     }
 
-    double time = (std::clock() - start) / (double)CLOCKS_PER_SEC;
-    std::cout << "Execution took " << time << " seconds." << std::endl;
+    std::cout << "Gathering of hashes took " << elapsed_time.count() << " milliseconds." << std::endl;
 }
