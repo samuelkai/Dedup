@@ -16,13 +16,6 @@ namespace fs = std::filesystem;
 
 int main(int argc, char *argv[])
 {
-/* 
-    const uint64_t testi = 123123ull;
-    const uint64_t * p = &testi;
-
-    cout << sizeof(testi) << endl;
-    cout << &p[0] << " " << &p[1] << endl;
-*/
     string input;
     if (argc < 2)
     {
@@ -34,7 +27,7 @@ int main(int argc, char *argv[])
     {
         input = argv[1];
     }
-    fs::path path(input);
+    fs::path path = fs::canonical(input);
 
     unordered_map<uint64_t, vector<string>> dedup_table;
     auto start_time = ch::steady_clock::now();
@@ -56,13 +49,9 @@ int main(int argc, char *argv[])
         }
 
         auto additional_time = ch::steady_clock::now();
-        gather_hashes(fs::path(input), dedup_table);
+        gather_hashes(fs::canonical(input), dedup_table);
         elapsed_time += ch::steady_clock::now() - additional_time;
     }
-
-    cout << endl
-         << "Contents of the deduplication table:\n"
-         << endl;
 
     for (const auto &pair : dedup_table)
     {

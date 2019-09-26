@@ -1,19 +1,29 @@
 cmake_minimum_required(VERSION 3.10)
-project(dedup LANGUAGES CXX)
+project(dedup LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(SOURCE_DIR ${PROJECT_SOURCE_DIR}/src)
 set(INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
 set(TEST_DIR ${PROJECT_SOURCE_DIR}/test)
+
+# A library for xxHash
+#-------------------------------------------------
+add_library(xxH
+    ${SOURCE_DIR}/xxhash.c
+)
+
+target_include_directories(xxH PRIVATE
+    ${INCLUDE_DIR}
+)
 
 # A library for source files other than main
 #-------------------------------------------------
 add_library(GatherHashes
     ${SOURCE_DIR}/gather_hashes.cpp
     ${SOURCE_DIR}/gather_hashes.h
-    ${SOURCE_DIR}/MurmurHash3.cpp
 )
 
 target_include_directories(GatherHashes PRIVATE
@@ -22,6 +32,7 @@ target_include_directories(GatherHashes PRIVATE
 
 target_link_libraries(GatherHashes
     stdc++fs
+    xxH
 )
 #-------------------------------------------------
 

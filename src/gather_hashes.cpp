@@ -1,18 +1,66 @@
-#include <sys/stat.h>
+#include "XXH/xxhash.h"
 #include <unordered_map>
 #include <vector>
 #include <filesystem>
 #include <iostream>
-#include <cstring>
-#include <hashlib++/hashlibpp.h>
-#include "MurmurHash3/MurmurHash3.h"
+#include <fstream>
+#include <stdexcept>
 using std::cin;
 using std::cout;
 using std::endl;
+using std::cerr;
 using std::string;
 using std::unordered_map;
 using std::vector;
 namespace fs = std::filesystem;
+
+uint64_t hash_file(const fs::path p) {
+    fs::path path = fs::canonical(p);
+    std::ifstream istream(path, std::ios::binary);
+
+    // Based on example code from xxHash
+    XXH64_state_t* const state = XXH64_createState();
+    if (state==NULL) {
+        throw std::runtime_error("xxHash state creation error");
+    }
+
+    size_t const buffer_size = 8192;
+    void* const input_buffer = malloc(buffer_size);
+    if (input_buffer==NULL) {
+        throw std::runtime_error("Memory allocation error");
+    }
+
+    /* Initialize state with selected seed */
+    unsigned long long const seed = 0;   /* or any other value */
+    XXH_errorcode const resetResult = XXH64_reset(state, seed);
+    if (resetResult == XXH_ERROR) {
+        throw std::runtime_error("xxHash state initialization error");
+    }
+
+    while ( istream.read((char*)input_buffer, buffer_size) ) {
+        auto count = istream.gcount();   
+        XXH_errorcode const updateResult = XXH64_update(state, input_buffer, count);
+        if (updateResult == XXH_ERROR) {
+            throw std::runtime_error("xxHash result update error");
+        }
+    }
+    auto count = istream.gcount();
+    if (count) {
+        XXH_errorcode const updateResult = XXH64_update(state, input_buffer, count);
+        if (updateResult == XXH_ERROR) {
+            throw std::runtime_error("xxHash result update error");
+        }
+    }
+
+    /* Get the hash */
+    XXH64_hash_t const hash = XXH64_digest(state);
+
+    /* State can then be re-used; in this example, it is simply freed  */
+    free(input_buffer);
+    XXH64_freeState(state);
+    
+    return (uint64_t)hash;
+}
 
 void gather_hashes(const fs::path path, unordered_map<uint64_t, vector<string>> &dedup_table)
 {
@@ -22,29 +70,10 @@ void gather_hashes(const fs::path path, unordered_map<uint64_t, vector<string>> 
         {
             if (fs::is_regular_file(path))
             {
-                try
-                {
-                    //KESKEN
-                    uint32_t seed = 1;
-                    uint64_t hash_otpt[2];  // allocate 128 bits
-                    FILE *key;
-                    if((key = fopen(path.c_str(), "rb")) == NULL)
-                    {
-                        throw hlException(HL_FILE_READ_ERROR,
-                                "Cannot read file \"" + 
-                                path.string() + 
-                                "\".");
-                    }
-                    struct stat st;
-                    stat(path.c_str(), &st);
-                    int size = st.st_size;
-                    MurmurHash3_x64_128(key, size, seed, hash_otpt);
-                    fclose(key);
-                    dedup_table[hash_otpt[0]].push_back(fs::canonical(path));
-                }
-                catch (hlException &e)
-                {
-                    cout << e.error_message() << endl;
+                try {
+                    dedup_table[hash_file(path)].push_back(path);
+                } catch (const std::exception &ex) {
+                    cerr << ex.what() << ": file " << path << '\n';
                 }
             }
             else if (fs::is_directory(path))
@@ -53,45 +82,11 @@ void gather_hashes(const fs::path path, unordered_map<uint64_t, vector<string>> 
                 {
                     if (fs::is_regular_file(dir_entry))
                     {
-                        try
-                        {
-                            uint32_t seed = 1;
-                            uint64_t hash_otpt[2];  // allocate 128 bits
-                            FILE *pFile;
-                            uintmax_t fSize;
-                            size_t result;
-                            if((pFile = fopen(dir_entry.path().c_str(), "rb")) == NULL)
-                            {
-                                cout << "Virhe" << endl;
-                                break;
-                            }
-                            
-                            // obtain file size:
-                            try
-                            {
-                                fSize = fs::file_size(dir_entry);
-                            }
-                            catch(fs::filesystem_error& e)
-                            {
-                                std::cerr << e.what() << '\n';
-                            }
-
-                            // allocate memory to contain the whole file:
-                            char *buffer = new char[fSize];
-                            if (buffer == NULL) {fputs ("Memory error",stderr); exit (2);}
-
-                            // copy the file into the buffer:
-                            result = fread (buffer,1,fSize,pFile);
-                            if (result != (size_t)fSize) {fputs ("Reading error",stderr); exit (3);}
-
-                            fclose (pFile);
-                            MurmurHash3_x64_128(buffer, fSize, seed, hash_otpt);
-                            delete[] buffer;
-                            dedup_table[hash_otpt[0]].push_back(fs::canonical(dir_entry));
-                        }
-                        catch (hlException &e)
-                        {
-                            cout << e.error_message() << endl;
+                        try {
+                            fs::path p = dir_entry.path();
+                            dedup_table[hash_file(p)].push_back(p);
+                        } catch (const std::exception &ex) {
+                           cerr << ex.what() << ": file " << dir_entry << '\n';
                         }
                     }
                     else
@@ -112,6 +107,6 @@ void gather_hashes(const fs::path path, unordered_map<uint64_t, vector<string>> 
     }
     catch (const fs::filesystem_error &ex)
     {
-        cout << ex.what() << '\n';
+        cerr << ex.what() << '\n';
     }
 }
