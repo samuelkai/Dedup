@@ -6,17 +6,17 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(SOURCE_DIR ${PROJECT_SOURCE_DIR}/src)
-set(INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
+set(THIRD_PARTY_DIR ${PROJECT_SOURCE_DIR}/third_party)
 set(TEST_DIR ${PROJECT_SOURCE_DIR}/test)
 
 # A library for xxHash
 #-------------------------------------------------
 add_library(xxH
-    ${SOURCE_DIR}/xxhash.c
+    ${THIRD_PARTY_DIR}/xxHash/xxhash.c
 )
 
 target_include_directories(xxH PRIVATE
-    ${INCLUDE_DIR}
+    ${THIRD_PARTY_DIR}
 )
 
 # A library for source files other than main
@@ -27,7 +27,7 @@ add_library(GatherHashes
 )
 
 target_include_directories(GatherHashes PRIVATE
-    ${INCLUDE_DIR}
+    ${THIRD_PARTY_DIR}
 )
 
 target_link_libraries(GatherHashes
@@ -55,7 +55,7 @@ target_link_libraries(${PROJECT_NAME}
 add_library(Catch INTERFACE)
 
 target_include_directories(Catch INTERFACE
-    ${INCLUDE_DIR}/catch2
+    ${THIRD_PARTY_DIR}/catch2
 )
 #-------------------------------------------------
 

@@ -1,4 +1,4 @@
-#include "XXH/xxhash.h"
+#include "xxHash/xxhash.h"
 #include <unordered_map>
 #include <vector>
 #include <filesystem>
@@ -21,12 +21,15 @@ uint64_t hash_file(const fs::path p) {
     // Based on example code from xxHash
     XXH64_state_t* const state = XXH64_createState();
     if (state==NULL) {
+        XXH64_freeState(state);
         throw std::runtime_error("xxHash state creation error");
     }
 
     size_t const buffer_size = 8192;
     void* const input_buffer = malloc(buffer_size);
     if (input_buffer==NULL) {
+        free(input_buffer);
+        XXH64_freeState(state);
         throw std::runtime_error("Memory allocation error");
     }
 
@@ -34,6 +37,8 @@ uint64_t hash_file(const fs::path p) {
     unsigned long long const seed = 0;   /* or any other value */
     XXH_errorcode const resetResult = XXH64_reset(state, seed);
     if (resetResult == XXH_ERROR) {
+        free(input_buffer);
+        XXH64_freeState(state);
         throw std::runtime_error("xxHash state initialization error");
     }
 
@@ -41,6 +46,8 @@ uint64_t hash_file(const fs::path p) {
         auto count = istream.gcount();   
         XXH_errorcode const updateResult = XXH64_update(state, input_buffer, count);
         if (updateResult == XXH_ERROR) {
+            free(input_buffer);
+            XXH64_freeState(state);
             throw std::runtime_error("xxHash result update error");
         }
     }
@@ -48,6 +55,8 @@ uint64_t hash_file(const fs::path p) {
     if (count) {
         XXH_errorcode const updateResult = XXH64_update(state, input_buffer, count);
         if (updateResult == XXH_ERROR) {
+            free(input_buffer);
+            XXH64_freeState(state);
             throw std::runtime_error("xxHash result update error");
         }
     }

@@ -16,6 +16,7 @@ namespace fs = std::filesystem;
 
 int main(int argc, char *argv[])
 {
+    // TODO: Virheenkäsittely syötteisiin jos ei anna polkua
     string input;
     if (argc < 2)
     {
