@@ -1,17 +1,20 @@
-#include "xxHash/xxhash.h"
 #include <unordered_map>
 #include <vector>
 #include <filesystem>
 #include <iostream>
 #include <fstream>
 #include <stdexcept>
+
+#include "xxHash/xxhash.h"
+#include "gather_hashes.h"
+
 using std::cin;
 using std::cout;
 using std::endl;
 using std::cerr;
 using std::string;
-using std::unordered_map;
 using std::vector;
+
 namespace fs = std::filesystem;
 
 uint64_t hash_file(const fs::path p) {
@@ -71,7 +74,7 @@ uint64_t hash_file(const fs::path p) {
     return (uint64_t)hash;
 }
 
-void gather_hashes(const fs::path path, unordered_map<uint64_t, vector<string>> &dedup_table)
+void gather_hashes(const fs::path path, DedupTable &dedup_table)
 {
     try
     {

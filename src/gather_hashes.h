@@ -1,9 +1,12 @@
 #ifndef GATHER_HASHES_H
 #define GATHER_HASHES_H
+
 #include <filesystem>
 #include <unordered_map>
 #include <string>
 #include <vector>
+
+using DedupTable = std::unordered_map<uint64_t, std::vector<std::string>>;
 
 /*
 * Calculates hash values of files and stores them
@@ -15,6 +18,6 @@
 * directory (non-recursively) will be calculated.
 */
 void gather_hashes(const std::filesystem::path path, 
-std::unordered_map<uint64_t, std::vector<std::string>> &dedup_table);
+DedupTable &dedup_table);
 
 #endif /* GATHER_HASHES_H */

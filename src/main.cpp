@@ -3,14 +3,16 @@
 #include <unordered_map>
 #include <string>
 #include <vector>
+
 #include "gather_hashes.h"
 #include "catch2/catch.hpp"
+
 using std::cin;
 using std::cout;
 using std::endl;
 using std::string;
-using std::unordered_map;
 using std::vector;
+
 namespace ch = std::chrono;
 namespace fs = std::filesystem;
 
@@ -21,7 +23,7 @@ bool is_positive_integer(const std::string& s)
     return !s.empty() && it == s.end();
 }
 
-void prompt_duplicate_deletions(unordered_map<uint64_t, vector<string>> duplicates)
+void prompt_duplicate_deletions(DedupTable duplicates)
 {
     cout << "\n" << "Found " << duplicates.size() << " files that have duplicates:\n\n";
     for (const auto &pair : duplicates)
@@ -77,7 +79,7 @@ int main(int argc, char *argv[])
     }
     fs::path path = fs::canonical(input);
 
-    unordered_map<uint64_t, vector<string>> dedup_table;
+    DedupTable dedup_table;
     auto start_time = ch::steady_clock::now();
 
     gather_hashes(path, dedup_table);
@@ -101,7 +103,7 @@ int main(int argc, char *argv[])
         elapsed_time += ch::steady_clock::now() - additional_time;
     }
 
-    unordered_map<uint64_t, vector<string>> duplicates;
+    DedupTable duplicates;
 
     for (const auto &pair : dedup_table)
     {
