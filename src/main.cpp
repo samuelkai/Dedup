@@ -63,45 +63,75 @@ void prompt_duplicate_deletions(DedupTable duplicates)
     }
 }
 
+string prompt_path(string instruction, bool use_ending_word = false,
+                   string ending_word = "")
+{
+    string input = "";
+    while (true)
+    {
+        cout << instruction << endl;
+        getline(cin, input);
+        if (fs::exists(input) || (use_ending_word && input == ending_word))
+        {
+            break;
+        }
+        cout << "File or directory \"" << input << "\" not found" << endl;
+    }
+    return input;
+}
+
 int main(int argc, char *argv[])
 {
-    // TODO: Virheenkäsittely syötteisiin jos ei anna polkua
     string input;
     if (argc < 2)
     {
-        cout << "Input a path (file or directory) to "
-        "be deduplicated" << endl;
-        getline(cin, input);
+        input = prompt_path("Input a path (file or directory) to "
+                    "be deduplicated");
     }
     else
     {
         input = argv[1];
+        if (!fs::exists(input))
+        {
+            input = prompt_path("Input a path (file or directory) "
+                        "to be deduplicated");
+        }
     }
-    fs::path path = fs::canonical(input);
+
+    fs::path input_path = fs::canonical(input);
+    vector<fs::path> paths_to_deduplicate;
+    paths_to_deduplicate.push_back(input_path);
+    cout << "Added path " << input_path
+            << " to be included in the deduplication" << endl;
+
+    while (!(input = prompt_path("Input another path to be included in "
+                                 "the deduplication or finish with Enter",
+                                 true))
+                .empty())
+    {
+        input_path = fs::canonical(input);
+        if (std::find(paths_to_deduplicate.begin(), paths_to_deduplicate.end(),
+                      input_path) == paths_to_deduplicate.end())
+        {
+            cout << "Added path " << input_path
+                 << " to be included in the deduplication" << endl;
+            paths_to_deduplicate.push_back(input_path);
+        }
+        else
+        {
+            cout << "Path " << input_path
+                 << " is already included in the deduplication" << endl;
+        }
+    }
 
     DedupTable dedup_table;
     auto start_time = ch::steady_clock::now();
-
-    gather_hashes(path, dedup_table);
-
-    ch::duration<double, std::milli> elapsed_time = ch::steady_clock::now() - start_time;
-
-    while (true)
+    for (auto path : paths_to_deduplicate)
     {
-        cout << "Input another path to be included in "
-        "the deduplication or finish with N" << endl;
-
-        string input;
-        getline(cin, input);
-        if (input == "N")
-        {
-            break;
-        }
-
-        auto additional_time = ch::steady_clock::now();
-        gather_hashes(fs::canonical(input), dedup_table);
-        elapsed_time += ch::steady_clock::now() - additional_time;
+        gather_hashes(path, dedup_table);
     }
+    ch::duration<double, std::milli> elapsed_time =
+        ch::steady_clock::now() - start_time;
 
     DedupTable duplicates;
 
@@ -120,5 +150,6 @@ int main(int argc, char *argv[])
         prompt_duplicate_deletions(duplicates);
     }
 
-    std::cout << "Gathering of hashes took " << elapsed_time.count() << " milliseconds." << std::endl;
+    std::cout << "Gathering of hashes took " << elapsed_time.count()
+              << " milliseconds." << std::endl;
 }
