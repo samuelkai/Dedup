@@ -29,21 +29,22 @@ void prompt_duplicate_deletions(DedupTable duplicates)
     for (const auto &pair : duplicates)
     {
         cout << "Key: " << pair.first << "\nValues:\n";
-        for (int i = 0; i < pair.second.size(); i++)
+        for (size_t i = 0; i < pair.second.size(); i++)
         {
             cout << "[" << i << "] " << pair.second[i] << "\n";
         }
         cout << endl;
 
         string input;
+        // Todo: Keep all or none
         do
         {
             cout << "Select the file to keep" << endl;
             getline(cin, input);
         } while (!is_positive_integer(input));
-        int kept = std::stoi(input);
+        unsigned int kept = std::stoi(input);
 
-        for (int i = 0; i < pair.second.size(); i++)
+        for (size_t i = 0; i < pair.second.size(); i++)
         {
             if (i != kept)
             {

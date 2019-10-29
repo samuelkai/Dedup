@@ -9,6 +9,8 @@ set(SOURCE_DIR ${PROJECT_SOURCE_DIR}/src)
 set(THIRD_PARTY_DIR ${PROJECT_SOURCE_DIR}/third_party)
 set(TEST_DIR ${PROJECT_SOURCE_DIR}/test)
 
+add_compile_options(-Wall -Wextra -pedantic -Werror)
+
 # A library for xxHash
 #-------------------------------------------------
 add_library(xxH
