@@ -46,8 +46,9 @@ uint64_t hash_file(const fs::path p) {
     }
 
     while ( istream.read((char*)input_buffer, buffer_size) ) {
-        auto count = istream.gcount();   
-        XXH_errorcode const updateResult = XXH64_update(state, input_buffer, count);
+        auto count = istream.gcount();
+        XXH_errorcode const updateResult = XXH64_update(state,
+                                                        input_buffer, count);
         if (updateResult == XXH_ERROR) {
             free(input_buffer);
             XXH64_freeState(state);
@@ -56,7 +57,8 @@ uint64_t hash_file(const fs::path p) {
     }
     auto count = istream.gcount();
     if (count) {
-        XXH_errorcode const updateResult = XXH64_update(state, input_buffer, count);
+        XXH_errorcode const updateResult = XXH64_update(state,
+                                                        input_buffer, count);
         if (updateResult == XXH_ERROR) {
             free(input_buffer);
             XXH64_freeState(state);
@@ -90,26 +92,26 @@ void gather_hashes(const fs::path path, DedupTable &dedup_table)
             }
             else if (fs::is_directory(path))
             {
-                for (const fs::directory_entry &dir_entry : fs::directory_iterator(path))
+                for (const fs::directory_entry &dir_entry :
+                     fs::directory_iterator(path))
                 {
-                    if (fs::is_regular_file(dir_entry))
+                    // Doesn't follow symlinks
+                    if (fs::is_regular_file(fs::symlink_status(dir_entry)))
                     {
                         try {
-                            fs::path p = dir_entry.path();
-                            dedup_table[hash_file(p)].push_back(p);
+                            fs::path dir_entry_path = dir_entry.path();
+                            dedup_table[hash_file(dir_entry_path)]
+                                .push_back(dir_entry_path);
                         } catch (const std::exception &ex) {
                            cerr << ex.what() << ": file " << dir_entry << '\n';
                         }
-                    }
-                    else
-                    {
-                        cout << endl;
                     }
                 }
             }
             else
             {
-                cout << path << " exists, but is not a regular file or directory\n";
+                cout << path << " exists, but is not a regular file "
+                                "or directory\n";
             }
         }
         else
