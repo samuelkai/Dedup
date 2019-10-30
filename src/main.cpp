@@ -25,7 +25,9 @@ bool is_positive_integer(const std::string& s)
 
 void prompt_duplicate_deletions(DedupTable duplicates)
 {
-    cout << "\n" << "Found " << duplicates.size() << " files that have duplicates:\n\n";
+    vector<string> keywords = {"a", "all", "n", "none"};
+    cout << "\n" << "Found " << duplicates.size()
+         << " files that have duplicates:\n\n";
     for (const auto &pair : duplicates)
     {
         cout << "Key: " << pair.first << "\nValues:\n";
@@ -37,30 +39,61 @@ void prompt_duplicate_deletions(DedupTable duplicates)
 
         string input;
         // Todo: Keep all or none
-        do
+        while (true)
         {
-            cout << "Select the file to keep" << endl;
+            cout << "Select the file(s) to keep: [0-"
+                 << pair.second.size() - 1 << "], [a]ll or [n]one" << endl;
             getline(cin, input);
-        } while (!is_positive_integer(input));
-        unsigned int kept = std::stoi(input);
-
-        for (size_t i = 0; i < pair.second.size(); i++)
-        {
-            if (i != kept)
+            if (is_positive_integer(input))
             {
-                try
+                unsigned int kept = std::stoi(input);
+
+                for (size_t i = 0; i < pair.second.size(); i++)
                 {
-                    if(!fs::remove(pair.second[i]))
+                    if (i != kept)
                     {
-                        std::cerr << "File \"" << pair.second[i] << "\" not found, could not delete it" << "\n";
+                        try
+                        {
+                            if (!fs::remove(pair.second[i]))
+                            {
+                                std::cerr << "File \"" << pair.second[i]
+                                          << "\" not found, could not "
+                                          << "delete it\n";
+                            }
+                        }
+                        catch (const fs::filesystem_error &e)
+                        {
+                            std::cerr << e.what() << '\n';
+                        }
                     }
                 }
-                catch(const fs::filesystem_error& e)
-                {
-                    std::cerr << e.what() << '\n';
-                }                 
+                break;
             }
-        }
+            else if (std::find(keywords.begin(), keywords.end(), input) 
+                    != keywords.end())
+            {
+                if (input == "n" || input == "none")
+                {
+                    for (auto path : pair.second)
+                    {
+                        try
+                        {
+                            if (!fs::remove(path))
+                            {
+                                std::cerr << "File \"" << path
+                                          << "\" not found, could not "
+                                          << "delete it\n";
+                            }
+                        }
+                        catch (const fs::filesystem_error &e)
+                        {
+                            std::cerr << e.what() << '\n';
+                        }
+                    }
+                }
+                break;
+            }
+        }        
     }
 }
 
