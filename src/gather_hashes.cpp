@@ -15,7 +15,41 @@ using std::vector;
 
 namespace fs = std::filesystem;
 
-void gather_hashes(const fs::path path, DedupTable &dedup_table)
+bool find_duplicate_file(const fs::path path, vector<vector<string>> &vec_vec)
+{
+    for (auto &dup_vec: vec_vec)
+    {
+        if (compare_files(path, dup_vec[0]))
+        {
+            dup_vec.push_back(path);
+            return true;
+        }                                
+    }
+    return false;
+}
+
+void insert_into_dedup_table(const fs::path path,
+                             DedupTable &dedup_table, uint64_t bytes)
+{
+    auto hash = bytes == 0 ? hash_file(path) : hash_file(path, bytes);
+    if (dedup_table[hash].size() == 0)
+    {
+        dedup_table[hash].push_back(
+            vector<string>{path});
+    }
+    else
+    {
+        if (!find_duplicate_file(
+            path, dedup_table[hash]))
+        {
+            dedup_table[hash].push_back(
+                vector<string>{path});
+        }
+    }
+}
+
+void gather_hashes(const fs::path path, DedupTable &dedup_table,
+                   uint64_t bytes, bool recursive)
 {
     try
     {
@@ -24,28 +58,48 @@ void gather_hashes(const fs::path path, DedupTable &dedup_table)
             if (fs::is_regular_file(path))
             {
                 try {
-                    dedup_table[hash_file(path)].push_back(path);
+                    insert_into_dedup_table(path, dedup_table, bytes);
                 } catch (const std::exception &ex) {
                     cerr << ex.what() << ": file " << path << '\n';
                 }
             }
             else if (fs::is_directory(path))
             {
-                for (const fs::directory_entry &dir_entry :
-                     fs::directory_iterator(path))
-                {
-                    // Doesn't follow symlinks
-                    if (fs::is_regular_file(fs::symlink_status(dir_entry)))
+                if (recursive)
+                {                        
+                    for (const fs::directory_entry &dir_entry :
+                        fs::recursive_directory_iterator(path))
                     {
-                        try {
-                            fs::path dir_entry_path = dir_entry.path();
-                            dedup_table[hash_file(dir_entry_path)]
-                                .push_back(dir_entry_path);
-                        } catch (const std::exception &ex) {
-                           cerr << ex.what() << ": file " << dir_entry << '\n';
+                        // Doesn't follow symlinks
+                        if (fs::is_regular_file(fs::symlink_status(dir_entry)))
+                        {
+                            try {
+                                fs::path dir_entry_path = dir_entry.path();
+                                insert_into_dedup_table(dir_entry_path, dedup_table, bytes);
+                            } catch (const std::exception &ex) {
+                            cerr << ex.what() << ": file " << dir_entry << '\n';
+                            }
                         }
                     }
                 }
+                else
+                {
+                    for (const fs::directory_entry &dir_entry :
+                        fs::directory_iterator(path))
+                    {
+                        // Doesn't follow symlinks
+                        if (fs::is_regular_file(fs::symlink_status(dir_entry)))
+                        {
+                            try {
+                                fs::path dir_entry_path = dir_entry.path();
+                                insert_into_dedup_table(dir_entry_path, dedup_table, bytes);
+                            } catch (const std::exception &ex) {
+                            cerr << ex.what() << ": file " << dir_entry << '\n';
+                            }
+                        }
+                    }
+                }
+                
             }
             else
             {

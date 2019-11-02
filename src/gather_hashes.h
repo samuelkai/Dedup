@@ -6,7 +6,8 @@
 #include <string>
 #include <vector>
 
-using DedupTable = std::unordered_map<uint64_t, std::vector<std::string>>;
+using DedupTable = std::unordered_map<uint64_t,
+                                      std::vector<std::vector<std::string>>>;
 
 /*
 * Calculates hash values of files and stores them
@@ -17,7 +18,7 @@ using DedupTable = std::unordered_map<uint64_t, std::vector<std::string>>;
 * If it is a directory, the hash of each file in the
 * directory (non-recursively) will be calculated.
 */
-void gather_hashes(const std::filesystem::path path, 
-DedupTable &dedup_table);
+void gather_hashes(const std::filesystem::path path,
+                   DedupTable &dedup_table, uint64_t bytes, bool recursive);
 
 #endif /* GATHER_HASHES_H */

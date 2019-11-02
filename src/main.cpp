@@ -23,17 +23,16 @@ bool is_positive_integer(const std::string& s)
     return !s.empty() && it == s.end();
 }
 
-void prompt_duplicate_deletions(DedupTable duplicates)
+void prompt_duplicate_deletions(vector<vector<string>> duplicates)
 {
     vector<string> keywords = {"a", "all", "n", "none"};
     cout << "\n" << "Found " << duplicates.size()
          << " files that have duplicates:\n\n";
-    for (const auto &pair : duplicates)
+    for (const auto &dup_vec : duplicates)
     {
-        cout << "Key: " << pair.first << "\nValues:\n";
-        for (size_t i = 0; i < pair.second.size(); i++)
+        for (size_t i = 0; i < dup_vec.size(); i++)
         {
-            cout << "[" << i << "] " << pair.second[i] << "\n";
+            cout << "[" << i << "] " << dup_vec[i] << "\n";
         }
         cout << endl;
 
@@ -42,21 +41,21 @@ void prompt_duplicate_deletions(DedupTable duplicates)
         while (true)
         {
             cout << "Select the file(s) to keep: [0-"
-                 << pair.second.size() - 1 << "], [a]ll or [n]one" << endl;
+                 << dup_vec.size() - 1 << "], [a]ll or [n]one" << endl;
             getline(cin, input);
             if (is_positive_integer(input))
             {
                 unsigned int kept = std::stoi(input);
 
-                for (size_t i = 0; i < pair.second.size(); i++)
+                for (size_t i = 0; i < dup_vec.size(); i++)
                 {
                     if (i != kept)
                     {
                         try
                         {
-                            if (!fs::remove(pair.second[i]))
+                            if (!fs::remove(dup_vec[i]))
                             {
-                                std::cerr << "File \"" << pair.second[i]
+                                std::cerr << "File \"" << dup_vec[i]
                                           << "\" not found, could not "
                                           << "delete it\n";
                             }
@@ -74,7 +73,7 @@ void prompt_duplicate_deletions(DedupTable duplicates)
             {
                 if (input == "n" || input == "none")
                 {
-                    for (auto path : pair.second)
+                    for (auto path : dup_vec)
                     {
                         try
                         {
@@ -162,18 +161,21 @@ int main(int argc, char *argv[])
     auto start_time = ch::steady_clock::now();
     for (auto path : paths_to_deduplicate)
     {
-        gather_hashes(path, dedup_table);
+        gather_hashes(path, dedup_table, 1024, true);
     }
     ch::duration<double, std::milli> elapsed_time =
         ch::steady_clock::now() - start_time;
 
-    DedupTable duplicates;
+    vector<vector<string>> duplicates;
 
     for (const auto &pair : dedup_table)
     {
-        if (pair.second.size() > 1)
+        for (const auto &dup_vec : pair.second)
         {
-            duplicates.insert(pair);
+            if (dup_vec.size() > 1)
+            {
+                duplicates.push_back(dup_vec);
+            }
         }
     }
 

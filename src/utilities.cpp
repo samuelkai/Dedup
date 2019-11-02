@@ -12,7 +12,7 @@ using std::cout;
 using std::endl;
 namespace fs = std::filesystem;
 
-bool compareFiles(const fs::path p1, const fs::path p2)
+bool compare_files(const fs::path p1, const fs::path p2)
 {
     fs::path path1 = fs::canonical(p1);
     fs::path path2 = fs::canonical(p2);

@@ -5,6 +5,6 @@
 TEST_CASE( "simple" )
 {
     DedupTable testmap;
-    gather_hashes("../../testi", testmap);
+    gather_hashes("../../testi", testmap, 0, false);
     REQUIRE( testmap.size() == 5 );
 }
