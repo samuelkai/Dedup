@@ -186,4 +186,6 @@ int main(int argc, char *argv[])
 
     std::cout << "Gathering of hashes took " << elapsed_time.count()
               << " milliseconds." << std::endl;
+
+    return 0;
 }

@@ -23,16 +23,16 @@ target_include_directories(xxH PRIVATE
 
 # A library for source files other than main
 #-------------------------------------------------
-add_library(GatherHashes
+add_library(Others
     ${SOURCE_DIR}/gather_hashes.cpp
-    ${SOURCE_DIR}/gather_hashes.h
+    ${SOURCE_DIR}/utilities.cpp
 )
 
-target_include_directories(GatherHashes PRIVATE
+target_include_directories(Others PRIVATE
     ${THIRD_PARTY_DIR}
 )
 
-target_link_libraries(GatherHashes
+target_link_libraries(Others
     stdc++fs
     xxH
 )
@@ -47,7 +47,7 @@ add_executable(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME}
     stdc++fs
-    GatherHashes
+    Others
 )
 #-------------------------------------------------
 
@@ -85,7 +85,7 @@ target_include_directories(unit_tests PRIVATE
 
 target_link_libraries(unit_tests
     Catch
-    GatherHashes
+    Others
 )
 
 enable_testing()

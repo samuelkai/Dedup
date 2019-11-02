@@ -2,11 +2,9 @@
 #include <vector>
 #include <filesystem>
 #include <iostream>
-#include <fstream>
-#include <stdexcept>
 
-#include "xxHash/xxhash.h"
 #include "gather_hashes.h"
+#include "utilities.h"
 
 using std::cin;
 using std::cout;
@@ -16,60 +14,6 @@ using std::string;
 using std::vector;
 
 namespace fs = std::filesystem;
-
-uint64_t hash_file(const fs::path p) {
-    fs::path path = fs::canonical(p);
-    std::ifstream istream(path, std::ios::binary);
-
-    // Based on example code from xxHash
-    XXH64_state_t* const state = XXH64_createState();
-    if (state==NULL) {
-        XXH64_freeState(state);
-        throw std::runtime_error("xxHash state creation error");
-    }
-
-    size_t const buffer_size = 4096;
-    char input_buffer[buffer_size];
-    if (input_buffer==NULL) {
-        XXH64_freeState(state);
-        throw std::runtime_error("Memory allocation error");
-    }
-
-    /* Initialize state with selected seed */
-    unsigned long long const seed = 0;   /* or any other value */
-    XXH_errorcode const resetResult = XXH64_reset(state, seed);
-    if (resetResult == XXH_ERROR) {
-        XXH64_freeState(state);
-        throw std::runtime_error("xxHash state initialization error");
-    }
-
-    while ( istream.read((char*)input_buffer, buffer_size) ) {
-        auto count = istream.gcount();
-        XXH_errorcode const updateResult = XXH64_update(state,
-                                                        input_buffer, count);
-        if (updateResult == XXH_ERROR) {
-            XXH64_freeState(state);
-            throw std::runtime_error("xxHash result update error");
-        }
-    }
-    auto count = istream.gcount();
-    if (count) {
-        XXH_errorcode const updateResult = XXH64_update(state,
-                                                        input_buffer, count);
-        if (updateResult == XXH_ERROR) {
-            XXH64_freeState(state);
-            throw std::runtime_error("xxHash result update error");
-        }
-    }
-
-    /* Get the hash */
-    XXH64_hash_t const hash = XXH64_digest(state);
-
-    /* State can then be re-used; in this example, it is simply freed  */
-    XXH64_freeState(state);
-    
-    return (uint64_t)hash;
-}
 
 void gather_hashes(const fs::path path, DedupTable &dedup_table)
 {
