@@ -48,6 +48,7 @@ void insert_into_dedup_table(const fs::path path,
     }
 }
 
+// TODO: Ignore empty files
 void gather_hashes(const fs::path path, DedupTable &dedup_table,
                    uint64_t bytes, bool recursive)
 {

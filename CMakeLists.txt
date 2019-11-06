@@ -45,6 +45,10 @@ add_executable(${PROJECT_NAME}
     ${SOURCE_DIR}/main.cpp
 )
 
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${THIRD_PARTY_DIR}
+)
+
 target_link_libraries(${PROJECT_NAME}
     stdc++fs
     Others

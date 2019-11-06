@@ -7,6 +7,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/dedup",
             "stopAtEntry": false,
+            "args": ["/home/samuel/Koodi/testi jea", "-b", "2"],
             "cwd": "${workspaceFolder}",
             "environment": [],
             "MIMode": "gdb",

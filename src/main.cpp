@@ -3,9 +3,11 @@
 #include <unordered_map>
 #include <string>
 #include <vector>
+#include <set>
 
 #include "gather_hashes.h"
 #include "catch2/catch.hpp"
+#include "cxxopts/cxxopts.hpp"
 
 using std::cin;
 using std::cout;
@@ -37,7 +39,6 @@ void prompt_duplicate_deletions(vector<vector<string>> duplicates)
         cout << endl;
 
         string input;
-        // Todo: Keep all or none
         while (true)
         {
             cout << "Select the file(s) to keep: [0-"
@@ -96,72 +97,87 @@ void prompt_duplicate_deletions(vector<vector<string>> duplicates)
     }
 }
 
-string prompt_path(string instruction, bool use_ending_word = false,
-                   string ending_word = "")
+cxxopts::ParseResult parse(int argc, char* argv[])
 {
-    string input = "";
-    while (true)
+    try
     {
-        cout << instruction << endl;
-        getline(cin, input);
-        if (fs::exists(input) || (use_ending_word && input == ending_word))
+        cxxopts::Options options(argv[0], " - find duplicate files");
+        options
+            .positional_help("path1 [path2] [path3]...")
+            .show_positional_help();
+
+        vector<string> paths;
+
+        options.add_options()
+            ("file", "File", cxxopts::value<vector<string>>(), "FILE");
+
+        options.add_options("Optional")
+            ("h,help", "Print help")
+            ("l,list", "List found duplicates, don't prompt for deduplication", 
+                cxxopts::value<bool>()->default_value("false"))
+            ("s,summarize", "Print only a summary of found duplicates, "
+                "don't prompt for deduplication",
+                cxxopts::value<bool>()->default_value("false"))
+            ("r,recursive", "Search the paths for duplicates recursively",
+                cxxopts::value<bool>()->default_value("false"))
+            ("b,bytes", "Number of bytes from the beginning of each file that"
+                "are used in hash calculation",
+                cxxopts::value<uint64_t>()->default_value("1024"), "N")
+        ;
+
+        options.parse_positional({"file"});
+
+        auto result = options.parse(argc, argv);
+
+        if (result.count("help"))
         {
-            break;
+            std::cout << options.help({"Optional"}) << endl;
+            exit(0);
         }
-        cout << "File or directory \"" << input << "\" not found" << endl;
+
+        // std::cout << "Arguments remain = " << argc << std::endl;
+
+        return result;
     }
-    return input;
+    catch (const cxxopts::OptionException& e)
+    {
+        std::cerr << "error parsing options: " << e.what() << "\n";
+        exit(1);
+    }
+
 }
 
 int main(int argc, char *argv[])
 {
-    string input;
-    if (argc < 2)
+    auto result = parse(argc, argv);
+    auto arguments = result.arguments();
+
+    std::set<fs::path> paths_to_deduplicate;
+    if (result.count("file"))
     {
-        input = prompt_path("Input a path (file or directory) to "
-                    "be deduplicated");
+        for (const auto path : result["file"].as<vector<string>>())
+        {
+            if (fs::exists(path))
+            {
+                paths_to_deduplicate.insert(fs::canonical(path));
+            }
+        }
     }
     else
     {
-        input = argv[1];
-        if (!fs::exists(input))
-        {
-            input = prompt_path("Input a path (file or directory) "
-                        "to be deduplicated");
-        }
-    }
-
-    fs::path input_path = fs::canonical(input);
-    vector<fs::path> paths_to_deduplicate;
-    paths_to_deduplicate.push_back(input_path);
-    cout << "Added path " << input_path
-            << " to be included in the deduplication" << endl;
-
-    while (!(input = prompt_path("Input another path to be included in "
-                                 "the deduplication or finish with Enter",
-                                 true))
-                .empty())
-    {
-        input_path = fs::canonical(input);
-        if (std::find(paths_to_deduplicate.begin(), paths_to_deduplicate.end(),
-                      input_path) == paths_to_deduplicate.end())
-        {
-            cout << "Added path " << input_path
-                 << " to be included in the deduplication" << endl;
-            paths_to_deduplicate.push_back(input_path);
-        }
-        else
-        {
-            cout << "Path " << input_path
-                 << " is already included in the deduplication" << endl;
-        }
+        cout << "Usage: " << argv[0] << " path1 [path2] [path3]..." << endl;
+        return 0;
     }
 
     DedupTable dedup_table;
+    bool recursive = result["recursive"].as<bool>();
+    uint64_t bytes = result["bytes"].as<uint64_t>();
     auto start_time = ch::steady_clock::now();
-    for (auto path : paths_to_deduplicate)
+    for (const auto path : paths_to_deduplicate)
     {
-        gather_hashes(path, dedup_table, 1024, true);
+        cout << "Searching " << path << " for duplicates"
+             << (recursive ? " recursively" : "") << endl;
+        gather_hashes(path, dedup_table, bytes, recursive);
     }
     ch::duration<double, std::milli> elapsed_time =
         ch::steady_clock::now() - start_time;
@@ -179,12 +195,37 @@ int main(int argc, char *argv[])
         }
     }
 
+    bool list = result["list"].as<bool>();
+    bool summarize = result["summarize"].as<bool>();
+
     if (duplicates.size() == 0)
     {
         cout << "Didn't find any duplicates." << endl;
-    } else {
+    }
+    else if (list)
+    {
+        cout << "\n" << "Found " << duplicates.size()
+         << " files that have duplicates:\n\n";
+        for (const auto &dup_vec : duplicates)
+        {
+            for (size_t i = 0; i < dup_vec.size(); i++)
+            {
+                cout << "[" << i << "] " << dup_vec[i] << "\n";
+            }
+            cout << endl;
+        }
+    }
+    else if (summarize)
+    {
+        cout << "\n" << "Found " << duplicates.size()
+         << " files that have duplicates" << endl;
+    }
+    
+    else
+    {
         prompt_duplicate_deletions(duplicates);
     }
+    
 
     std::cout << "Gathering of hashes took " << elapsed_time.count()
               << " milliseconds." << std::endl;
