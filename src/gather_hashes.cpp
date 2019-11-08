@@ -78,7 +78,7 @@ void gather_hashes(const fs::path path, DedupTable &dedup_table,
                                 fs::path dir_entry_path = dir_entry.path();
                                 insert_into_dedup_table(dir_entry_path, dedup_table, bytes);
                             } catch (const std::exception &ex) {
-                            cerr << ex.what() << ": file " << dir_entry << '\n';
+                                cerr << ex.what() << ": file " << dir_entry << "\n\n";
                             }
                         }
                     }
@@ -95,7 +95,7 @@ void gather_hashes(const fs::path path, DedupTable &dedup_table,
                                 fs::path dir_entry_path = dir_entry.path();
                                 insert_into_dedup_table(dir_entry_path, dedup_table, bytes);
                             } catch (const std::exception &ex) {
-                            cerr << ex.what() << ": file " << dir_entry << '\n';
+                                cerr << ex.what() << ": file " << dir_entry << "\n\n";
                             }
                         }
                     }
@@ -105,16 +105,16 @@ void gather_hashes(const fs::path path, DedupTable &dedup_table,
             else
             {
                 cout << path << " exists, but is not a regular file "
-                                "or directory\n";
+                                "or directory\n\n";
             }
         }
         else
         {
-            cout << path << " does not exist\n";
+            cout << path << " does not exist\n\n";
         }
     }
     catch (const fs::filesystem_error &ex)
     {
-        cerr << ex.what() << '\n';
+        cerr << ex.what() << "\n\n";
     }
 }

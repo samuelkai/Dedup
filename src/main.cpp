@@ -159,7 +159,10 @@ int main(int argc, char *argv[])
         {
             if (fs::exists(path))
             {
-                paths_to_deduplicate.insert(fs::canonical(path));
+                if (!fs::is_symlink(path))
+                {
+                    paths_to_deduplicate.insert(fs::canonical(path));
+                }
             }
         }
     }
