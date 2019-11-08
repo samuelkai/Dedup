@@ -164,6 +164,9 @@ int main(int argc, char *argv[])
                     paths_to_deduplicate.insert(fs::canonical(path));
                 }
             }
+            else {
+                cout << path << " does not exist\n\n";
+            }
         }
     }
     else
