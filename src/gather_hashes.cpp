@@ -31,6 +31,11 @@ bool find_duplicate_file(const fs::path path, vector<vector<string>> &vec_vec)
 void insert_into_dedup_table(const fs::path path,
                              DedupTable &dedup_table, uint64_t bytes)
 {
+    if (fs::is_empty(path))
+    {
+        return;
+    }
+    
     auto hash = bytes == 0 ? hash_file(path) : hash_file(path, bytes);
     if (dedup_table[hash].size() == 0)
     {
@@ -48,7 +53,6 @@ void insert_into_dedup_table(const fs::path path,
     }
 }
 
-// TODO: Ignore empty files
 void gather_hashes(const fs::path path, DedupTable &dedup_table,
                    uint64_t bytes, bool recursive)
 {

@@ -106,8 +106,6 @@ cxxopts::ParseResult parse(int argc, char* argv[])
             .positional_help("path1 [path2] [path3]...")
             .show_positional_help();
 
-        vector<string> paths;
-
         options.add_options()
             ("file", "File", cxxopts::value<vector<string>>(), "FILE");
 
@@ -134,8 +132,6 @@ cxxopts::ParseResult parse(int argc, char* argv[])
             std::cout << options.help({"Optional"}) << endl;
             exit(0);
         }
-
-        // std::cout << "Arguments remain = " << argc << std::endl;
 
         return result;
     }
