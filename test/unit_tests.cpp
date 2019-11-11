@@ -1,6 +1,6 @@
-#include <iostream>
-#include "catch2/catch.hpp"
 #include "gather_hashes.h"
+#include "catch2/catch.hpp"
+#include <iostream>
 
 TEST_CASE( "simple" )
 {

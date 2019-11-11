@@ -1,21 +1,19 @@
-#include <unordered_map>
-#include <vector>
-#include <filesystem>
-#include <iostream>
-
 #include "gather_hashes.h"
 #include "utilities.h"
 
-using std::cin;
+#include <filesystem>
+#include <iostream>
+#include <unordered_map>
+#include <vector>
+
 using std::cout;
-using std::endl;
 using std::cerr;
 using std::string;
 using std::vector;
 
 namespace fs = std::filesystem;
 
-bool find_duplicate_file(const fs::path path, vector<vector<string>> &vec_vec)
+bool find_duplicate_file(const fs::path &path, vector<vector<string>> &vec_vec)
 {
     for (auto &dup_vec: vec_vec)
     {
@@ -28,7 +26,7 @@ bool find_duplicate_file(const fs::path path, vector<vector<string>> &vec_vec)
     return false;
 }
 
-void insert_into_dedup_table(const fs::path path,
+void insert_into_dedup_table(const fs::path &path,
                              DedupTable &dedup_table, uint64_t bytes)
 {
     if (fs::is_empty(path))
@@ -37,7 +35,7 @@ void insert_into_dedup_table(const fs::path path,
     }
     
     auto hash = bytes == 0 ? hash_file(path) : hash_file(path, bytes);
-    if (dedup_table[hash].size() == 0)
+    if (dedup_table[hash].empty())
     {
         dedup_table[hash].push_back(
             vector<string>{path});
@@ -53,7 +51,7 @@ void insert_into_dedup_table(const fs::path path,
     }
 }
 
-void gather_hashes(const fs::path path, DedupTable &dedup_table,
+void gather_hashes(const fs::path &path, DedupTable &dedup_table,
                    uint64_t bytes, bool recursive)
 {
     try
@@ -79,7 +77,7 @@ void gather_hashes(const fs::path path, DedupTable &dedup_table,
                         if (fs::is_regular_file(fs::symlink_status(dir_entry)))
                         {
                             try {
-                                fs::path dir_entry_path = dir_entry.path();
+                                const fs::path &dir_entry_path = dir_entry.path();
                                 insert_into_dedup_table(dir_entry_path, dedup_table, bytes);
                             } catch (const std::exception &ex) {
                                 cerr << ex.what() << ": file " << dir_entry << "\n\n";
@@ -96,7 +94,7 @@ void gather_hashes(const fs::path path, DedupTable &dedup_table,
                         if (fs::is_regular_file(fs::symlink_status(dir_entry)))
                         {
                             try {
-                                fs::path dir_entry_path = dir_entry.path();
+                                const fs::path &dir_entry_path = dir_entry.path();
                                 insert_into_dedup_table(dir_entry_path, dedup_table, bytes);
                             } catch (const std::exception &ex) {
                                 cerr << ex.what() << ": file " << dir_entry << "\n\n";

@@ -1,13 +1,13 @@
-#include <iostream>
-#include <filesystem>
-#include <unordered_map>
-#include <string>
-#include <vector>
-#include <set>
-
 #include "gather_hashes.h"
 #include "catch2/catch.hpp"
 #include "cxxopts/cxxopts.hpp"
+
+#include <filesystem>
+#include <iostream>
+#include <set>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 using std::cin;
 using std::cout;
@@ -69,12 +69,12 @@ void prompt_duplicate_deletions(vector<vector<string>> duplicates)
                 }
                 break;
             }
-            else if (std::find(keywords.begin(), keywords.end(), input) 
+            if (std::find(keywords.begin(), keywords.end(), input) 
                     != keywords.end())
             {
                 if (input == "n" || input == "none")
                 {
-                    for (auto path : dup_vec)
+                    for (const auto &path : dup_vec)
                     {
                         try
                         {
@@ -118,8 +118,9 @@ cxxopts::ParseResult parse(int argc, char* argv[])
                 cxxopts::value<bool>()->default_value("false"))
             ("r,recursive", "Search the paths for duplicates recursively",
                 cxxopts::value<bool>()->default_value("false"))
-            ("b,bytes", "Number of bytes from the beginning of each file that"
-                "are used in hash calculation",
+            ("b,bytes", "Number of bytes from the beginning of each file that "
+                "are used in hash calculation. "
+                "0 means that the whole file is hashed.",
                 cxxopts::value<uint64_t>()->default_value("1024"), "N")
         ;
 
@@ -146,12 +147,11 @@ cxxopts::ParseResult parse(int argc, char* argv[])
 int main(int argc, char *argv[])
 {
     auto result = parse(argc, argv);
-    auto arguments = result.arguments();
 
     std::set<fs::path> paths_to_deduplicate;
     if (result.count("file"))
     {
-        for (const auto path : result["file"].as<vector<string>>())
+        for (const auto &path : result["file"].as<vector<string>>())
         {
             if (fs::exists(path))
             {
@@ -175,7 +175,7 @@ int main(int argc, char *argv[])
     bool recursive = result["recursive"].as<bool>();
     uint64_t bytes = result["bytes"].as<uint64_t>();
     auto start_time = ch::steady_clock::now();
-    for (const auto path : paths_to_deduplicate)
+    for (const auto &path : paths_to_deduplicate)
     {
         cout << "Searching " << path << " for duplicates"
              << (recursive ? " recursively" : "") << endl;
@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
     bool list = result["list"].as<bool>();
     bool summarize = result["summarize"].as<bool>();
 
-    if (duplicates.size() == 0)
+    if (duplicates.empty())
     {
         cout << "Didn't find any duplicates." << endl;
     }

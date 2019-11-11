@@ -9,6 +9,8 @@ set(SOURCE_DIR ${PROJECT_SOURCE_DIR}/src)
 set(THIRD_PARTY_DIR ${PROJECT_SOURCE_DIR}/third_party)
 set(TEST_DIR ${PROJECT_SOURCE_DIR}/test)
 
+#set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-checks=*,-fuchsia-default-arguments;-header-filter=.;")
+
 add_compile_options(-Wall -Wextra -pedantic -Werror)
 
 # A library for xxHash

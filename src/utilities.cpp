@@ -1,18 +1,15 @@
-#include <iostream>
+#include "utilities.h"
+#include "xxHash/xxhash.h"
+
+#include <cstring>
 #include <filesystem>
 #include <fstream>
-#include <cstring>
+#include <iostream>
 #include <limits>
 
-#include "xxHash/xxhash.h"
-#include "utilities.h"
-
-using std::cin;
-using std::cout;
-using std::endl;
 namespace fs = std::filesystem;
 
-bool compare_files(const fs::path p1, const fs::path p2)
+bool compare_files(const fs::path &p1, const fs::path &p2)
 {
     fs::path path1 = fs::canonical(p1);
     fs::path path2 = fs::canonical(p2);
@@ -54,24 +51,20 @@ bool compare_files(const fs::path p1, const fs::path p2)
     return true;
 }
 
-uint64_t hash_file(const fs::path p)
+uint64_t hash_file(const fs::path &p)
 {
     fs::path path = fs::canonical(p);
     std::ifstream istream(path, std::ios::binary);
 
     // Based on example code from xxHash
     XXH64_state_t* const state = XXH64_createState();
-    if (state==NULL) {
+    if (state==nullptr) {
         XXH64_freeState(state);
         throw std::runtime_error("xxHash state creation error");
     }
 
     size_t const buffer_size = 4096;
     char input_buffer[buffer_size];
-    if (input_buffer==NULL) {
-        XXH64_freeState(state);
-        throw std::runtime_error("Memory allocation error");
-    }
 
     /* Initialize state with selected seed */
     unsigned long long const seed = 0;   /* or any other value */
@@ -102,24 +95,20 @@ uint64_t hash_file(const fs::path p)
     return (uint64_t)hash;
 }
 
-uint64_t hash_file(const fs::path p, uint64_t bytes)
+uint64_t hash_file(const fs::path &p, uint64_t bytes)
 {
     fs::path path = fs::canonical(p);
     std::ifstream istream(path, std::ios::binary);
 
     // Based on example code from xxHash
     XXH64_state_t* const state = XXH64_createState();
-    if (state==NULL) {
+    if (state==nullptr) {
         XXH64_freeState(state);
         throw std::runtime_error("xxHash state creation error");
     }
 
     size_t const buffer_size = 4096;
     char input_buffer[buffer_size];
-    if (input_buffer==NULL) {
-        XXH64_freeState(state);
-        throw std::runtime_error("Memory allocation error");
-    }
 
     /* Initialize state with selected seed */
     unsigned long long const seed = 0;   /* or any other value */

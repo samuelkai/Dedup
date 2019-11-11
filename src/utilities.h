@@ -3,11 +3,11 @@
 
 #include <filesystem>
 
-bool compare_files(const std::filesystem::path p1,
-                  const std::filesystem::path p2);
+bool compare_files(const std::filesystem::path &p1,
+                  const std::filesystem::path &p2);
 
-uint64_t hash_file(const std::filesystem::path p);
+uint64_t hash_file(const std::filesystem::path &p);
 
-uint64_t hash_file(const std::filesystem::path p, uint64_t bytes);
+uint64_t hash_file(const std::filesystem::path &p, uint64_t bytes);
 
-#endif /* UTILITIES_H */
+#endif // UTILITIES_H
