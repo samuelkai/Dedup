@@ -1,4 +1,4 @@
-#include "gather_hashes.h"
+#include "find_duplicates.h"
 #include "catch2/catch.hpp"
 
 #include <filesystem>
@@ -9,7 +9,7 @@ namespace fs = std::filesystem;
 
 TEST_CASE( "simple" )
 {
-    DedupTable testmap;
+    DedupTable<uint64_t> testmap;
     
     fs::path test_dir_path = fs::temp_directory_path() / "dedup_test98437524";
     fs::create_directory(test_dir_path);

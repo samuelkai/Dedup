@@ -26,7 +26,7 @@ target_include_directories(xxH PRIVATE
 # A library for source files other than main
 #-------------------------------------------------
 add_library(Others
-    ${SOURCE_DIR}/gather_hashes.cpp
+    ${SOURCE_DIR}/find_duplicates.cpp
     ${SOURCE_DIR}/utilities.cpp
 )
 
@@ -87,6 +87,7 @@ add_executable(unit_tests
 
 target_include_directories(unit_tests PRIVATE
     ${SOURCE_DIR}
+    ${THIRD_PARTY_DIR}
 )
 
 target_link_libraries(unit_tests

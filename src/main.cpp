@@ -1,12 +1,9 @@
-#include "gather_hashes.h"
-#include "catch2/catch.hpp"
+#include "find_duplicates.h"
 #include "cxxopts/cxxopts.hpp"
 
 #include <filesystem>
 #include <iostream>
-#include <set>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 using std::cin;
@@ -15,92 +12,32 @@ using std::endl;
 using std::string;
 using std::vector;
 
-namespace ch = std::chrono;
 namespace fs = std::filesystem;
 
-bool is_positive_integer(const std::string& s)
-{
-    std::string::const_iterator it = s.begin();
-    while (it != s.end() && std::isdigit(*it)) ++it;
-    return !s.empty() && it == s.end();
-}
+const vector<int> hash_sizes = {1,2,4,8};
+const int DEFAULT_HASH_SIZE = 8;
 
-void prompt_duplicate_deletions(vector<vector<string>> duplicates)
+struct EndException : public std::exception
 {
-    vector<string> keywords = {"a", "all", "n", "none"};
-    cout << "\n" << "Found " << duplicates.size()
-         << " files that have duplicates:\n\n";
-    for (const auto &dup_vec : duplicates)
+	const char * what () const throw ()
     {
-        for (size_t i = 0; i < dup_vec.size(); i++)
-        {
-            cout << "[" << i << "] " << dup_vec[i] << "\n";
-        }
-        cout << endl;
-
-        string input;
-        while (true)
-        {
-            cout << "Select the file(s) to keep: [0-"
-                 << dup_vec.size() - 1 << "], [a]ll or [n]one" << endl;
-            getline(cin, input);
-            if (is_positive_integer(input))
-            {
-                unsigned int kept = std::stoi(input);
-
-                for (size_t i = 0; i < dup_vec.size(); i++)
-                {
-                    if (i != kept)
-                    {
-                        try
-                        {
-                            if (!fs::remove(dup_vec[i]))
-                            {
-                                std::cerr << "File \"" << dup_vec[i]
-                                          << "\" not found, could not "
-                                          << "delete it\n";
-                            }
-                        }
-                        catch (const fs::filesystem_error &e)
-                        {
-                            std::cerr << e.what() << '\n';
-                        }
-                    }
-                }
-                break;
-            }
-            if (std::find(keywords.begin(), keywords.end(), input) 
-                    != keywords.end())
-            {
-                if (input == "n" || input == "none")
-                {
-                    for (const auto &path : dup_vec)
-                    {
-                        try
-                        {
-                            if (!fs::remove(path))
-                            {
-                                std::cerr << "File \"" << path
-                                          << "\" not found, could not "
-                                          << "delete it\n";
-                            }
-                        }
-                        catch (const fs::filesystem_error &e)
-                        {
-                            std::cerr << e.what() << '\n';
-                        }
-                    }
-                }
-                break;
-            }
-        }        
+        return "End program";
     }
-}
+};
 
 cxxopts::ParseResult parse(int argc, char* argv[])
 {
     try
     {
+        string hash_sizes_str;
+        for (size_t i = 0; i < hash_sizes.size(); ++i) {
+            hash_sizes_str += std::to_string(hash_sizes[i]);
+            if (i+1 != hash_sizes.size())
+            {
+                hash_sizes_str += ", ";
+            }
+        }
+
         cxxopts::Options options(argv[0], " - find duplicate files");
         options
             .positional_help("path1 [path2] [path3]...")
@@ -122,6 +59,9 @@ cxxopts::ParseResult parse(int argc, char* argv[])
                 "are used in hash calculation. "
                 "0 means that the whole file is hashed.",
                 cxxopts::value<uint64_t>()->default_value("1024"), "N")
+            ("a,hash", "Hash digest size in bytes, valid values are " + 
+                hash_sizes_str, cxxopts::value<int>()->default_value(
+                std::to_string(DEFAULT_HASH_SIZE)), "N")
         ;
 
         options.parse_positional({"file"});
@@ -130,8 +70,20 @@ cxxopts::ParseResult parse(int argc, char* argv[])
 
         if (result.count("help"))
         {
-            std::cout << options.help({"Optional"}) << endl;
-            exit(0);
+            cout << options.help({"Optional"}) << endl;
+            throw EndException();
+        }
+
+        if (result.count("hash"))
+        {
+            int size = result["hash"].as<int>();
+            if (std::find(hash_sizes.begin(), hash_sizes.end(), size)
+                == hash_sizes.end())
+            {
+                cout << "Invalid argument hash: must be one of "
+                     << hash_sizes_str << endl;
+                throw EndException();
+            }
         }
 
         return result;
@@ -146,91 +98,55 @@ cxxopts::ParseResult parse(int argc, char* argv[])
 
 int main(int argc, char *argv[])
 {
-    auto result = parse(argc, argv);
-
-    std::set<fs::path> paths_to_deduplicate;
-    if (result.count("file"))
+    try
     {
-        for (const auto &path : result["file"].as<vector<string>>())
+        auto result = parse(argc, argv);
+
+        std::set<fs::path> paths_to_deduplicate;
+        if (result.count("file"))
         {
-            if (fs::exists(path))
+            for (const auto &path : result["file"].as<vector<string>>())
             {
-                if (!fs::is_symlink(path))
+                if (fs::exists(path))
                 {
-                    paths_to_deduplicate.insert(fs::canonical(path));
+                    if (!fs::is_symlink(path))
+                    {
+                        paths_to_deduplicate.insert(fs::canonical(path));
+                    }
+                }
+                else {
+                    cout << path << " does not exist\n\n";
                 }
             }
-            else {
-                cout << path << " does not exist\n\n";
-            }
         }
-    }
-    else
-    {
-        cout << "Usage: " << argv[0] << " path1 [path2] [path3]..." << endl;
-        return 0;
-    }
-
-    DedupTable dedup_table;
-    bool recursive = result["recursive"].as<bool>();
-    uint64_t bytes = result["bytes"].as<uint64_t>();
-    auto start_time = ch::steady_clock::now();
-    for (const auto &path : paths_to_deduplicate)
-    {
-        cout << "Searching " << path << " for duplicates"
-             << (recursive ? " recursively" : "") << endl;
-        gather_hashes(path, dedup_table, bytes, recursive);
-    }
-    ch::duration<double, std::milli> elapsed_time =
-        ch::steady_clock::now() - start_time;
-
-    vector<vector<string>> duplicates;
-
-    for (const auto &pair : dedup_table)
-    {
-        for (const auto &dup_vec : pair.second)
+        else
         {
-            if (dup_vec.size() > 1)
-            {
-                duplicates.push_back(dup_vec);
-            }
+            cout << "Usage: " << argv[0] << " path1 [path2] [path3]..." 
+                 << endl;
+            return 0;
         }
-    }
-
-    bool list = result["list"].as<bool>();
-    bool summarize = result["summarize"].as<bool>();
-
-    if (duplicates.empty())
-    {
-        cout << "Didn't find any duplicates." << endl;
-    }
-    else if (list)
-    {
-        cout << "\n" << "Found " << duplicates.size()
-         << " files that have duplicates:\n\n";
-        for (const auto &dup_vec : duplicates)
+        
+        int hash_size = result["hash"].as<int>();    
+        switch (hash_size)
         {
-            for (size_t i = 0; i < dup_vec.size(); i++)
-            {
-                cout << "[" << i << "] " << dup_vec[i] << "\n";
-            }
-            cout << endl;
+        case 1:
+            find_duplicates<uint8_t>(result, paths_to_deduplicate);
+            break;
+        case 2:
+            find_duplicates<uint16_t>(result, paths_to_deduplicate);
+            break;
+        case 4:
+            find_duplicates<uint32_t>(result, paths_to_deduplicate);
+            break;
+        default:
+            find_duplicates<uint64_t>(result, paths_to_deduplicate);
+            break;
         }
     }
-    else if (summarize)
+    catch(const EndException& e)
     {
-        cout << "\n" << "Found " << duplicates.size()
-         << " files that have duplicates" << endl;
+        return(0);
     }
     
-    else
-    {
-        prompt_duplicate_deletions(duplicates);
-    }
-    
-
-    std::cout << "Gathering of hashes took " << elapsed_time.count()
-              << " milliseconds." << std::endl;
-
     return 0;
 }
