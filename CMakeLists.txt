@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.13)
 project(dedup LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -9,9 +9,11 @@ set(SOURCE_DIR ${PROJECT_SOURCE_DIR}/src)
 set(THIRD_PARTY_DIR ${PROJECT_SOURCE_DIR}/third_party)
 set(TEST_DIR ${PROJECT_SOURCE_DIR}/test)
 
-#set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-checks=*,-fuchsia-default-arguments;-header-filter=.;")
+# set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-checks=*,-fuchsia-default-arguments;-header-filter=.;")
 
 add_compile_options(-Wall -Wextra -pedantic -Werror)
+# add_compile_options(-fsanitize=address,undefined)
+# add_link_options(-fsanitize=address,undefined)
 
 # A library for xxHash
 #-------------------------------------------------

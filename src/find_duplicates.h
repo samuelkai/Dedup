@@ -12,9 +12,6 @@
 template <typename T>
 using DedupTable = std::unordered_map<T,std::vector<std::vector<std::string>>>;
 
-extern const std::vector<int> hash_sizes;
-extern const int DEFAULT_HASH_SIZE;
-
 /*
 * Calculates hash values of files and stores them
 * in the deduplication table.
@@ -30,6 +27,6 @@ void gather_hashes(const std::filesystem::path &path,
                    bool recursive);
 
 template <typename T>
-void find_duplicates(cxxopts::ParseResult &result, std::set<std::filesystem::path> &paths_to_deduplicate);
+void find_duplicates(const cxxopts::ParseResult &result, const std::set<std::filesystem::path> &paths_to_deduplicate);
 
 #endif // FIND_DUPLICATES_H

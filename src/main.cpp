@@ -6,7 +6,6 @@
 #include <string>
 #include <vector>
 
-using std::cin;
 using std::cout;
 using std::endl;
 using std::string;
@@ -14,12 +13,9 @@ using std::vector;
 
 namespace fs = std::filesystem;
 
-const vector<int> hash_sizes = {1,2,4,8};
-const int DEFAULT_HASH_SIZE = 8;
-
 struct EndException : public std::exception
 {
-	const char * what () const throw ()
+	const char* what() const noexcept override
     {
         return "End program";
     }
@@ -29,6 +25,9 @@ cxxopts::ParseResult parse(int argc, char* argv[])
 {
     try
     {
+
+        const vector<int> hash_sizes = {1,2,4,8};
+        const int DEFAULT_HASH_SIZE = 8;
         string hash_sizes_str;
         for (size_t i = 0; i < hash_sizes.size(); ++i) {
             hash_sizes_str += std::to_string(hash_sizes[i]);
@@ -58,7 +57,7 @@ cxxopts::ParseResult parse(int argc, char* argv[])
             ("b,bytes", "Number of bytes from the beginning of each file that "
                 "are used in hash calculation. "
                 "0 means that the whole file is hashed.",
-                cxxopts::value<uint64_t>()->default_value("1024"), "N")
+                cxxopts::value<uint64_t>()->default_value("4096"), "N")
             ("a,hash", "Hash digest size in bytes, valid values are " + 
                 hash_sizes_str, cxxopts::value<int>()->default_value(
                 std::to_string(DEFAULT_HASH_SIZE)), "N")

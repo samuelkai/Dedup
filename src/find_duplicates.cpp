@@ -1,5 +1,6 @@
 #include "find_duplicates.h"
 #include "utilities.h"
+
 #include "cxxopts/cxxopts.hpp"
 
 #include <bitset>
@@ -19,7 +20,7 @@ using std::vector;
 namespace ch = std::chrono;
 namespace fs = std::filesystem;
 
-bool find_duplicate_file(const fs::path &path, vector<vector<string>> &vec_vec)
+bool find_duplicate_file(const string &path, vector<vector<string>> &vec_vec)
 {
     for (auto &dup_vec: vec_vec)
     {
@@ -33,7 +34,7 @@ bool find_duplicate_file(const fs::path &path, vector<vector<string>> &vec_vec)
 }
 
 template <typename T>
-void insert_into_dedup_table(const fs::path &path, DedupTable<T> &dedup_table,
+void insert_into_dedup_table(const string &path, DedupTable<T> &dedup_table,
                              uint64_t bytes)
 {
     if (fs::is_empty(path))
@@ -224,7 +225,7 @@ void prompt_duplicate_deletions(vector<vector<string>> duplicates)
 }
 
 template <typename T>
-void find_duplicates(cxxopts::ParseResult &result, std::set<fs::path> &paths_to_deduplicate)
+void find_duplicates(const cxxopts::ParseResult &result, const std::set<fs::path> &paths_to_deduplicate)
 {
     DedupTable<T> dedup_table;
     uint64_t bytes = result["bytes"].as<uint64_t>();
@@ -287,7 +288,7 @@ void find_duplicates(cxxopts::ParseResult &result, std::set<fs::path> &paths_to_
               << " milliseconds." << std::endl;
 }
 
-template void find_duplicates<uint8_t>(cxxopts::ParseResult &result, std::set<fs::path> &paths_to_deduplicate);
-template void find_duplicates<uint16_t>(cxxopts::ParseResult &result, std::set<fs::path> &paths_to_deduplicate);
-template void find_duplicates<uint32_t>(cxxopts::ParseResult &result, std::set<fs::path> &paths_to_deduplicate);
-template void find_duplicates<uint64_t>(cxxopts::ParseResult &result, std::set<fs::path> &paths_to_deduplicate);
+template void find_duplicates<uint8_t>(const cxxopts::ParseResult &result, const std::set<fs::path> &paths_to_deduplicate);
+template void find_duplicates<uint16_t>(const cxxopts::ParseResult &result, const std::set<fs::path> &paths_to_deduplicate);
+template void find_duplicates<uint32_t>(const cxxopts::ParseResult &result, const std::set<fs::path> &paths_to_deduplicate);
+template void find_duplicates<uint64_t>(const cxxopts::ParseResult &result, const std::set<fs::path> &paths_to_deduplicate);
