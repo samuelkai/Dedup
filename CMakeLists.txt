@@ -77,6 +77,10 @@ target_include_directories(Catch INTERFACE
 add_library(test_main OBJECT
     ${TEST_DIR}/test_main.cpp
 )
+
+target_include_directories(test_main PRIVATE
+    ${THIRD_PARTY_DIR}
+)
 #-------------------------------------------------
 
 

@@ -10,6 +10,18 @@
             "cppStandard": "c++17",
             "compilerPath": "/usr/bin/g++-8",
             "compileCommands": "${workspaceFolder}/build/compile_commands.json"
+        },
+        {
+            "name": "Windows",
+            "includePath": [
+                "${default}",
+                "${workspaceFolder}/third_party",
+                "${workspaceFolder}/src"
+            ],
+            "cppStandard": "c++17",
+            "compilerPath": "C:/msys64/mingw64/bin/g++.exe",
+            "compileCommands": "${workspaceFolder}/build/compile_commands.json",
+            "intelliSenseMode": "gcc-x64"
         }
     ],
     "version": 4
