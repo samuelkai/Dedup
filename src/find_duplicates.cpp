@@ -72,7 +72,7 @@ void gather_hashes(const fs::path &path, DedupTable<T> &dedup_table,
             if (fs::is_regular_file(path))
             {
                 try {
-                    insert_into_dedup_table(path, dedup_table, bytes);
+                    insert_into_dedup_table(path.string(), dedup_table, bytes);
                 } catch (const std::exception &ex) {
                     cerr << ex.what() << ": file " << path << '\n';
                 }
@@ -89,7 +89,7 @@ void gather_hashes(const fs::path &path, DedupTable<T> &dedup_table,
                         {
                             try {
                                 const fs::path &dir_entry_path = dir_entry.path();
-                                insert_into_dedup_table(dir_entry_path, dedup_table, bytes);
+                                insert_into_dedup_table(dir_entry_path.string(), dedup_table, bytes);
                             } catch (const std::exception &ex) {
                                 cerr << ex.what() << ": file " << dir_entry << "\n\n";
                             }
@@ -106,7 +106,7 @@ void gather_hashes(const fs::path &path, DedupTable<T> &dedup_table,
                         {
                             try {
                                 const fs::path &dir_entry_path = dir_entry.path();
-                                insert_into_dedup_table(dir_entry_path, dedup_table, bytes);
+                                insert_into_dedup_table(dir_entry_path.string(), dedup_table, bytes);
                             } catch (const std::exception &ex) {
                                 cerr << ex.what() << ": file " << dir_entry << "\n\n";
                             }
