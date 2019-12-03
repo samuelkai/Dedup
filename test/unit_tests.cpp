@@ -65,7 +65,6 @@ TEST_CASE( "simple" )
 {
     fs::path test_dir_path = fs::temp_directory_path() / "dedup_test98437524";
 
-    fs::remove_all(test_dir_path);
     fs::create_directory(test_dir_path);
     
     std::ofstream outfile (test_dir_path / "test.txt");
