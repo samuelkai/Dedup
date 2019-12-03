@@ -12,21 +12,19 @@
 template <typename T>
 using DedupTable = std::unordered_map<T,std::vector<std::vector<std::string>>>;
 
+
 /*
 * Calculates hash values of files and stores them
 * in the deduplication table.
 * 
 * Path can be a file or a directory.
 * If it is a file, its hash is calculated.
-* If it is a directory, the hash of each file in the
-* directory (non-recursively) will be calculated.
+* If it is a directory, the hash of each file in the directory (recursively or
+* not, depending on the argument) will be calculated.
 */
 template <typename T>
-void gather_hashes(const std::filesystem::path &path,
-                   DedupTable<T> &dedup_table, uint64_t bytes,
-                   bool recursive);
-
-template <typename T>
-void find_duplicates(const cxxopts::ParseResult &result, const std::set<std::filesystem::path> &paths_to_deduplicate);
+std::vector<std::vector<std::string>> find_duplicates(
+    const cxxopts::ParseResult &result, 
+    const std::set<std::filesystem::path> &paths_to_deduplicate);
 
 #endif // FIND_DUPLICATES_H
