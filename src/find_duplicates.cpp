@@ -20,7 +20,7 @@ using std::vector;
 namespace ch = std::chrono;
 namespace fs = std::filesystem;
 
-bool find_duplicate_file(const string &path, vector<vector<string>> &vec_vec)
+bool find_duplicate_file(const fs::path &path, vector<vector<fs::path>> &vec_vec)
 {
     for (auto &dup_vec: vec_vec)
     {
@@ -34,7 +34,7 @@ bool find_duplicate_file(const string &path, vector<vector<string>> &vec_vec)
 }
 
 template <typename T>
-void insert_into_dedup_table(const string &path, DedupTable<T> &dedup_table,
+void insert_into_dedup_table(const fs::path &path, DedupTable<T> &dedup_table,
                              uint64_t bytes)
 {
     if (fs::is_empty(path))
@@ -48,7 +48,7 @@ void insert_into_dedup_table(const string &path, DedupTable<T> &dedup_table,
     if (dedup_table[hash].empty())
     {
         dedup_table[hash].push_back(
-            vector<string>{path});
+            vector<fs::path>{path});
     }
     else
     {
@@ -56,7 +56,7 @@ void insert_into_dedup_table(const string &path, DedupTable<T> &dedup_table,
             path, dedup_table[hash]))
         {
             dedup_table[hash].push_back(
-                vector<string>{path});
+                vector<fs::path>{path});
         }
     }
 }
@@ -72,7 +72,7 @@ void gather_hashes(const fs::path &path, DedupTable<T> &dedup_table,
             if (fs::is_regular_file(path))
             {
                 try {
-                    insert_into_dedup_table(path.string(), dedup_table, bytes);
+                    insert_into_dedup_table(path, dedup_table, bytes);
                 } catch (const std::exception &ex) {
                     cerr << ex.what() << ": file " << path << '\n';
                 }
@@ -89,7 +89,7 @@ void gather_hashes(const fs::path &path, DedupTable<T> &dedup_table,
                         {
                             try {
                                 const fs::path &dir_entry_path = dir_entry.path();
-                                insert_into_dedup_table(dir_entry_path.string(), dedup_table, bytes);
+                                insert_into_dedup_table(dir_entry_path, dedup_table, bytes);
                             } catch (const std::exception &ex) {
                                 cerr << ex.what() << ": file " << dir_entry << "\n\n";
                             }
@@ -106,7 +106,7 @@ void gather_hashes(const fs::path &path, DedupTable<T> &dedup_table,
                         {
                             try {
                                 const fs::path &dir_entry_path = dir_entry.path();
-                                insert_into_dedup_table(dir_entry_path.string(), dedup_table, bytes);
+                                insert_into_dedup_table(dir_entry_path, dedup_table, bytes);
                             } catch (const std::exception &ex) {
                                 cerr << ex.what() << ": file " << dir_entry << "\n\n";
                             }
@@ -146,7 +146,7 @@ template void gather_hashes<uint64_t>(const std::filesystem::path &path,
                    bool recursive);
 
 template <typename T>
-vector<vector<string>> find_duplicates(const cxxopts::ParseResult &result, const std::set<fs::path> &paths_to_deduplicate)
+vector<vector<fs::path>> find_duplicates(const cxxopts::ParseResult &result, const std::set<fs::path> &paths_to_deduplicate)
 {
     DedupTable<T> dedup_table;
     uint64_t bytes = result["bytes"].as<uint64_t>();
@@ -164,7 +164,7 @@ vector<vector<string>> find_duplicates(const cxxopts::ParseResult &result, const
     std::cout << "Gathering of hashes took " << elapsed_time.count()
               << " milliseconds." << std::endl;
     
-    vector<vector<string>> duplicates;
+    vector<vector<fs::path>> duplicates;
 
     for (const auto &pair : dedup_table)
     {
@@ -180,7 +180,7 @@ vector<vector<string>> find_duplicates(const cxxopts::ParseResult &result, const
     return duplicates;
 }
 
-template vector<vector<string>> find_duplicates<uint8_t>(const cxxopts::ParseResult &result, const std::set<fs::path> &paths_to_deduplicate);
-template vector<vector<string>> find_duplicates<uint16_t>(const cxxopts::ParseResult &result, const std::set<fs::path> &paths_to_deduplicate);
-template vector<vector<string>> find_duplicates<uint32_t>(const cxxopts::ParseResult &result, const std::set<fs::path> &paths_to_deduplicate);
-template vector<vector<string>> find_duplicates<uint64_t>(const cxxopts::ParseResult &result, const std::set<fs::path> &paths_to_deduplicate);
+template vector<vector<fs::path>> find_duplicates<uint8_t>(const cxxopts::ParseResult &result, const std::set<fs::path> &paths_to_deduplicate);
+template vector<vector<fs::path>> find_duplicates<uint16_t>(const cxxopts::ParseResult &result, const std::set<fs::path> &paths_to_deduplicate);
+template vector<vector<fs::path>> find_duplicates<uint32_t>(const cxxopts::ParseResult &result, const std::set<fs::path> &paths_to_deduplicate);
+template vector<vector<fs::path>> find_duplicates<uint64_t>(const cxxopts::ParseResult &result, const std::set<fs::path> &paths_to_deduplicate);

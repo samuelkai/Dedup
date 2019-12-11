@@ -3,9 +3,10 @@
 
 #include "cxxopts/cxxopts.hpp"
 
+#include <filesystem>
 #include <string>
 #include <vector>
 
-void deal_with_duplicates(const cxxopts::ParseResult &result, const std::vector<std::vector<std::string>> duplicates);
+void deal_with_duplicates(const cxxopts::ParseResult &result, const std::vector<std::vector<std::filesystem::path>> duplicates);
 
 #endif // DEAL_WITH_DUPLICATES_H
