@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
         }
         
         int hash_size = result["hash"].as<int>();
-        vector<vector<string>> duplicates; 
+        vector<vector<fs::path>> duplicates; 
         switch (hash_size)
         {
         case 1:

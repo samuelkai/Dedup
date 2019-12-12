@@ -11,7 +11,9 @@
 #include <vector>
 
 template <typename T>
-using DedupTable = std::unordered_map<T,std::vector<std::vector<std::string>>>;
+using DedupTable = std::unordered_map<T,std::vector
+                                        <std::vector
+                                        <std::filesystem::path>>>;
 
 
 /*
@@ -24,7 +26,7 @@ using DedupTable = std::unordered_map<T,std::vector<std::vector<std::string>>>;
 * not, depending on the argument) will be calculated.
 */
 template <typename T>
-std::vector<std::vector<std::string>> find_duplicates(
+std::vector<std::vector<std::filesystem::path>> find_duplicates(
     const cxxopts::ParseResult &result, 
     const std::set<std::filesystem::path> &paths_to_deduplicate);
 

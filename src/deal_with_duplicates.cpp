@@ -23,7 +23,7 @@ bool is_positive_integer(const std::string& s)
     return !s.empty() && it == s.end();
 }
 
-void prompt_duplicate_deletions(const vector<vector<string>> duplicates)
+void prompt_duplicate_deletions(const vector<vector<fs::path>> duplicates)
 {
     vector<string> keywords = {"a", "all", "n", "none"};
     cout << "\n" << "Found " << duplicates.size()
@@ -95,7 +95,7 @@ void prompt_duplicate_deletions(const vector<vector<string>> duplicates)
     }
 }
 
-void deal_with_duplicates(const cxxopts::ParseResult &result, const vector<vector<string>> duplicates)
+void deal_with_duplicates(const cxxopts::ParseResult &result, const vector<vector<fs::path>> duplicates)
 {
     bool list = result["list"].as<bool>();
     bool summarize = result["summarize"].as<bool>();
