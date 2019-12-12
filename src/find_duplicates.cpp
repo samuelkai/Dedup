@@ -5,6 +5,7 @@
 
 #include <chrono>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <set>
 #include <unordered_map>
@@ -37,27 +38,34 @@ template <typename T>
 void insert_into_dedup_table(const string &path, DedupTable<T> &dedup_table,
                              uint64_t bytes)
 {
-    if (fs::is_empty(path))
+    try
     {
-        return;
-    }
+        if (fs::is_empty(path))
+        {
+            return;
+        }
 
-    auto hash = bytes == 0 ? hash_file(path) : hash_file(path, bytes);
-    hash = static_cast<T>(hash);
+        auto hash = bytes == 0 ? hash_file(path) : hash_file(path, bytes);
+        hash = static_cast<T>(hash);
 
-    if (dedup_table[hash].empty())
-    {
-        dedup_table[hash].push_back(
-            vector<string>{path});
-    }
-    else
-    {
-        if (!find_duplicate_file(
-            path, dedup_table[hash]))
+        if (dedup_table[hash].empty())
         {
             dedup_table[hash].push_back(
                 vector<string>{path});
         }
+        else
+        {
+            if (!find_duplicate_file(
+                path, dedup_table[hash]))
+            {
+                dedup_table[hash].push_back(
+                    vector<string>{path});
+            }
+        }
+    }
+    catch(const std::exception& e)
+    {
+        cerr << e.what() << ": file " << path << '\n';
     }
 }
 
@@ -69,66 +77,82 @@ void gather_hashes(const fs::path &path, DedupTable<T> &dedup_table,
     {
         if (fs::exists(path))
         {
-            if (fs::is_regular_file(path))
-            {
-                try {
-                    insert_into_dedup_table(path.string(), dedup_table, bytes);
-                } catch (const std::exception &ex) {
-                    cerr << ex.what() << ": file " << path << '\n';
-                }
-            }
-            else if (fs::is_directory(path))
+            if (fs::is_directory(path))
             {
                 if (recursive)
-                {                        
-                    for (const fs::directory_entry &dir_entry :
-                        fs::recursive_directory_iterator(path))
-                    {
-                        // Doesn't follow symlinks
-                        if (fs::is_regular_file(fs::symlink_status(dir_entry)))
-                        {
-                            try {
-                                const fs::path &dir_entry_path = dir_entry.path();
-                                insert_into_dedup_table(dir_entry_path.string(), dedup_table, bytes);
-                            } catch (const std::exception &ex) {
-                                cerr << ex.what() << ": file " << dir_entry << "\n\n";
-                            }
-                        }
-                    }
-                }
-                else
                 {
-                    for (const fs::directory_entry &dir_entry :
-                        fs::directory_iterator(path))
+                    try
                     {
-                        // Doesn't follow symlinks
-                        if (fs::is_regular_file(fs::symlink_status(dir_entry)))
+                        fs::recursive_directory_iterator iter(path);                    
+                        fs::recursive_directory_iterator end;                            
+                        for (; iter != end; ++iter)
                         {
-                            try {
-                                const fs::path &dir_entry_path = dir_entry.path();
-                                insert_into_dedup_table(dir_entry_path.string(), dedup_table, bytes);
-                            } catch (const std::exception &ex) {
-                                cerr << ex.what() << ": file " << dir_entry << "\n\n";
+                            const fs::path iter_path(iter->path());
+
+                            // Check directory permissions before accessing it,
+                            // so the iterator won't be destroyed on access
+                            // denied error 
+                            if (fs::is_directory(iter_path))
+                            {
+                                try
+                                {
+                                    fs::path path_before_change = fs::current_path();
+                                    // Try to cd to the directory, so its files can be accessed
+                                    fs::current_path(iter_path);
+                                    fs::current_path(path_before_change);
+                                    // Try to read the file list of the directory
+                                    fs::directory_iterator check_read_access(iter_path);
+                                }
+                                catch(const std::exception& e)
+                                {
+                                    cerr << "Cannot access directory " << iter_path << "\n";
+                                    iter.disable_recursion_pending();
+                                }
+                            }
+                            else if (fs::is_regular_file(fs::symlink_status(iter_path)))
+                            {
+                                insert_into_dedup_table(iter_path.string(), dedup_table, bytes);
                             }
                         }
                     }
+                    catch(const std::exception& e)
+                    {
+                        std::cerr << e.what() << '\n';
+                        return;
+                    }
                 }
-                
+                else // not recursive
+                {
+                    fs::directory_iterator iter(path);                    
+                    fs::directory_iterator end; 
+                    for (; iter != end; ++iter)
+                    {
+                        const fs::path iter_path(iter->path());
+                        if (fs::is_regular_file(fs::symlink_status(iter_path)))
+                        {
+                            insert_into_dedup_table(iter_path, dedup_table, bytes);
+                        }
+                    }
+                }
             }
-            else
+            else if (fs::is_regular_file(fs::symlink_status(path)))
+            {
+                insert_into_dedup_table(path, dedup_table, bytes);
+            }
+            else // not a regular file or directory
             {
                 cout << path << " exists, but is not a regular file "
                                 "or directory\n\n";
             }
         }
-        else
+        else // does not exist
         {
             cout << path << " does not exist\n\n";
         }
     }
-    catch (const fs::filesystem_error &ex)
+    catch (const fs::filesystem_error &e)
     {
-        cerr << ex.what() << "\n\n";
+        cerr << e.what() << "\n\n";
     }
 }
 

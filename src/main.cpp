@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+using std::cerr;
 using std::cout;
 using std::endl;
 using std::string;
@@ -107,15 +108,22 @@ int main(int argc, char *argv[])
         {
             for (const auto &path : result["file"].as<vector<string>>())
             {
-                if (fs::exists(path))
+                try
                 {
-                    if (!fs::is_symlink(path))
+                    if (fs::exists(path))
                     {
-                        paths_to_deduplicate.insert(fs::canonical(path));
+                        if (!fs::is_symlink(path))
+                        {
+                            paths_to_deduplicate.insert(fs::canonical(path));
+                        }
+                    }
+                    else {
+                        cout << path << " does not exist\n\n";
                     }
                 }
-                else {
-                    cout << path << " does not exist\n\n";
+                catch(const std::exception& e)
+                {
+                    cerr << "Error opening file: " << e.what() << '\n';
                 }
             }
         }

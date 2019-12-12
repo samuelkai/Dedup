@@ -2,6 +2,7 @@
 #define FIND_DUPLICATES_H
 
 #include "cxxopts/cxxopts.hpp"
+#include "tsl/hopscotch_map.h"
 
 #include <filesystem>
 #include <set>
