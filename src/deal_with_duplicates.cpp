@@ -16,6 +16,9 @@ using std::vector;
 
 namespace fs = std::filesystem;
 
+/* 
+ * Returns true if the given string is a positive integer.
+ */
 bool is_positive_integer(const std::string& s)
 {
     std::string::const_iterator it = s.begin();
@@ -23,78 +26,95 @@ bool is_positive_integer(const std::string& s)
     return !s.empty() && it == s.end();
 }
 
+/*
+ * Asks the user to select on the command line which files are kept 
+ * in each set of duplicates.
+ */
 void prompt_duplicate_deletions(const vector<vector<fs::path>> duplicates)
 {
-    vector<string> keywords = {"a", "all", "n", "none"};
-    cout << "\n" << "Found " << duplicates.size()
-         << " files that have duplicates:\n\n";
+    cout << endl;
+    // For each set of duplicates
     for (const auto &dup_vec : duplicates)
     {
-        for (size_t i = 0; i < dup_vec.size(); i++)
+        for (size_t i = 1; i <= dup_vec.size(); i++)
         {
-            cout << "[" << i << "] " << dup_vec[i] << "\n";
+            cout << "[" << i << "] " << dup_vec[i-1] << "\n";
         }
         cout << endl;
 
         string input;
-        while (true)
+        bool valid_input = false;
+        while (!valid_input)
         {
-            cout << "Select the file(s) to keep: [0-"
-                 << dup_vec.size() - 1 << "], [a]ll or [n]one" << endl;
+            cout << "Select the file(s) to keep: [1-"
+                 << dup_vec.size() << "], [a]ll or [n]one" << endl;
             getline(cin, input);
             if (is_positive_integer(input))
             {
-                unsigned int kept = std::stoi(input);
-
-                for (size_t i = 0; i < dup_vec.size(); i++)
+                try
                 {
-                    if (i != kept)
+                    unsigned int kept = std::stoi(input);
+                    // Given number must specify one of the duplicates
+                    if (kept <= dup_vec.size())
                     {
-                        try
+                        for (size_t i = 1; i <= dup_vec.size(); i++)
                         {
-                            if (!fs::remove(dup_vec[i]))
+                            // Remove all others
+                            if (i != kept)
                             {
-                                std::cerr << "File \"" << dup_vec[i]
-                                          << "\" not found, could not "
-                                          << "delete it\n";
+                                valid_input = true;
+                                try
+                                {
+                                    if (!fs::remove(dup_vec[i-1]))
+                                    {
+                                        std::cerr << "File \"" << dup_vec[i-1]
+                                                << "\" not found, could not "
+                                                << "delete it\n";
+                                    }
+                                }
+                                catch (const fs::filesystem_error &e)
+                                {
+                                    std::cerr << e.what() << '\n';
+                                }
                             }
-                        }
-                        catch (const fs::filesystem_error &e)
-                        {
-                            std::cerr << e.what() << '\n';
                         }
                     }
                 }
-                break;
+                catch(const std::out_of_range& e)
+                {
+                }
             }
-            if (std::find(keywords.begin(), keywords.end(), input) 
-                    != keywords.end())
+            else if (input == "n" || input == "none") // Remove all
             {
-                if (input == "n" || input == "none")
+                valid_input = true;
+                for (const auto &path : dup_vec)
                 {
-                    for (const auto &path : dup_vec)
+                    try
                     {
-                        try
+                        if (!fs::remove(path))
                         {
-                            if (!fs::remove(path))
-                            {
-                                std::cerr << "File \"" << path
-                                          << "\" not found, could not "
-                                          << "delete it\n";
-                            }
-                        }
-                        catch (const fs::filesystem_error &e)
-                        {
-                            std::cerr << e.what() << '\n';
+                            std::cerr << "File \"" << path
+                                        << "\" not found, could not "
+                                        << "delete it\n";
                         }
                     }
+                    catch (const fs::filesystem_error &e)
+                    {
+                        std::cerr << e.what() << '\n';
+                    }
                 }
-                break;
+            }
+            else if (input == "a" || input == "all") // Keep all
+            {
+                valid_input = true;
             }
         }        
     }
 }
 
+/*
+ * Deal with the given duplicates according to the given parameters.
+ */
 void deal_with_duplicates(const cxxopts::ParseResult &result, const vector<vector<fs::path>> duplicates)
 {
     bool list = result["list"].as<bool>();
@@ -103,24 +123,33 @@ void deal_with_duplicates(const cxxopts::ParseResult &result, const vector<vecto
     if (duplicates.empty())
     {
         cout << "Didn't find any duplicates." << endl;
+        return;
     }
-    else if (list)
+
+    unsigned int number_of_duplicate_files = 0;
+    for (const auto &dup_vec : duplicates)
     {
-        cout << "\n" << "Found " << duplicates.size()
-                << " files that have duplicates:\n\n";
+        number_of_duplicate_files += dup_vec.size();
+    }
+
+    cout << "\n" << "Found " << number_of_duplicate_files
+         << " duplicate files in " << duplicates.size() << " sets." << endl; 
+
+    if (list) // List found duplicates, don't prompt their deletion
+    {
+        cout << "\n";
         for (const auto &dup_vec : duplicates)
         {
             for (size_t i = 0; i < dup_vec.size(); i++)
             {
-                cout << "[" << i << "] " << dup_vec[i] << "\n";
+                cout << dup_vec[i] << "\n";
             }
             cout << endl;
         }
     }
     else if (summarize)
     {
-        cout << "\n" << "Found " << duplicates.size()
-                << " files that have duplicates" << endl;
+        // Just the previously printed summary, don't prompt deletion
     }    
     else
     {

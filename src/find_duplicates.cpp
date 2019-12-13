@@ -5,7 +5,6 @@
 
 #include <chrono>
 #include <filesystem>
-#include <fstream>
 #include <iostream>
 #include <set>
 #include <unordered_map>
@@ -185,8 +184,8 @@ vector<vector<fs::path>> find_duplicates(const cxxopts::ParseResult &result, con
     }
     ch::duration<double, std::milli> elapsed_time =
         ch::steady_clock::now() - start_time;
-    std::cout << "Gathering of hashes took " << elapsed_time.count()
-              << " milliseconds." << std::endl;
+    cout << "Gathering of hashes took " << elapsed_time.count()
+              << " milliseconds." << endl;
     
     vector<vector<fs::path>> duplicates;
 
