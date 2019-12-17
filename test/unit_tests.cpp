@@ -15,6 +15,9 @@ using std::vector;
 
 namespace fs = std::filesystem;
 
+/**
+ * Needed in order to get the ParseResult.
+ */
 cxxopts::ParseResult parse(int argc, char* argv[])
 {
     const vector<int> hash_sizes = {1,2,4,8};
@@ -34,7 +37,7 @@ cxxopts::ParseResult parse(int argc, char* argv[])
         .show_positional_help();
 
     options.add_options()
-        ("file", "File", cxxopts::value<vector<string>>(), "FILE");
+        ("path", "path", cxxopts::value<vector<string>>(), "PATH");
 
     options.add_options("Optional")
         ("h,help", "Print help")
@@ -54,7 +57,7 @@ cxxopts::ParseResult parse(int argc, char* argv[])
             std::to_string(DEFAULT_HASH_SIZE)), "N")
     ;
 
-    options.parse_positional({"file"});
+    options.parse_positional({"path"});
 
     auto result = options.parse(argc, argv);
 

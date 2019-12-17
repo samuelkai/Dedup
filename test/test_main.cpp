@@ -9,10 +9,16 @@ struct MyListener : Catch::TestEventListenerBase {
 
     using TestEventListenerBase::TestEventListenerBase; // inherit constructor
     
-    void testRunEnded( Catch::TestRunStats const& testRunStats __attribute__((unused))) override {
-        fs::path test_dir_path = fs::temp_directory_path() / "dedup_test98437524";
+    /**
+     * Remove temporary directory after test run.
+     */
+    void testRunEnded(Catch::TestRunStats 
+        const& testRunStats __attribute__((unused))) override
+    {
+        fs::path test_dir_path = 
+            fs::temp_directory_path() / "dedup_test98437524";
 
         fs::remove_all(test_dir_path);
     }
 };
-CATCH_REGISTER_LISTENER( MyListener )
+CATCH_REGISTER_LISTENER(MyListener)

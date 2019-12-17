@@ -16,7 +16,7 @@ using std::vector;
 
 namespace fs = std::filesystem;
 
-/* 
+/**
  * Returns true if the given string is a positive integer.
  */
 bool is_positive_integer(const std::string& s)
@@ -26,7 +26,7 @@ bool is_positive_integer(const std::string& s)
     return !s.empty() && it == s.end();
 }
 
-/*
+/**
  * Asks the user to select on the command line which files are kept 
  * in each set of duplicates.
  */
@@ -112,10 +112,12 @@ void prompt_duplicate_deletions(const vector<vector<fs::path>> duplicates)
     }
 }
 
-/*
+/**
  * Deal with the given duplicates according to the given parameters.
+ * List, summarize or prompt for deletion.
  */
-void deal_with_duplicates(const cxxopts::ParseResult &result, const vector<vector<fs::path>> duplicates)
+void deal_with_duplicates(const cxxopts::ParseResult &result, 
+                          const vector<vector<fs::path>> duplicates)
 {
     bool list = result["list"].as<bool>();
     bool summarize = result["summarize"].as<bool>();
@@ -129,7 +131,8 @@ void deal_with_duplicates(const cxxopts::ParseResult &result, const vector<vecto
     unsigned int number_of_duplicate_files = 0;
     for (const auto &dup_vec : duplicates)
     {
-        number_of_duplicate_files += dup_vec.size();
+        // A set of n identical files has n - 1 duplicate files
+        number_of_duplicate_files += dup_vec.size() - 1;
     }
 
     cout << "\n" << "Found " << number_of_duplicate_files

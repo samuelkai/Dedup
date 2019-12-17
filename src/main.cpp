@@ -15,21 +15,38 @@ using std::vector;
 
 namespace fs = std::filesystem;
 
-struct EndException : public std::exception
+/**
+ * Exception that function parse throws if the program should terminate
+ */
+class EndException : public std::exception
 {
-	const char* what() const noexcept override
-    {
-        return "End program";
-    }
+    int _bad;
+
+    public:
+        EndException(int bad)
+        {
+            _bad = bad;
+        }
+        /**
+         * Returns 1 if the termination is because of an error, 0 if otherwise
+         */
+        int bad() const noexcept
+        {
+            return _bad;
+        }
 };
 
+/**
+ * Parse command line arguments
+ */
 cxxopts::ParseResult parse(int argc, char* argv[])
 {
     try
     {
-
+        // Possible sizes for the hash digest in bytes
         const vector<int> hash_sizes = {1,2,4,8};
         const int DEFAULT_HASH_SIZE = 8;
+
         string hash_sizes_str;
         for (size_t i = 0; i < hash_sizes.size(); ++i) {
             hash_sizes_str += std::to_string(hash_sizes[i]);
@@ -44,9 +61,14 @@ cxxopts::ParseResult parse(int argc, char* argv[])
             .positional_help("path1 [path2] [path3]...")
             .show_positional_help();
 
-        options.add_options()
-            ("file", "File", cxxopts::value<vector<string>>(), "FILE");
+        // Positional argument that won't be printed in help
+        options.add_options("")
+            ("path", "Path", cxxopts::value<vector<string>>(), "PATH");
 
+        // For example: "l, list" means that the argument is given with "-l" or
+        // "--list". Next is the description to be displayed in help. Next is 
+        // the value type and default value. The possible last string is 
+        // displayed in help after the argument, as in "--bytes N".
         options.add_options("Optional")
             ("h,help", "Print help")
             ("l,list", "List found duplicates, don't prompt for deduplication", 
@@ -65,14 +87,14 @@ cxxopts::ParseResult parse(int argc, char* argv[])
                 std::to_string(DEFAULT_HASH_SIZE)), "N")
         ;
 
-        options.parse_positional({"file"});
+        options.parse_positional({"path"});
 
         auto result = options.parse(argc, argv);
 
         if (result.count("help"))
         {
             cout << options.help({"Optional"}) << endl;
-            throw EndException();
+            throw EndException(0);
         }
 
         if (result.count("hash"))
@@ -83,7 +105,7 @@ cxxopts::ParseResult parse(int argc, char* argv[])
             {
                 cout << "Invalid argument hash: must be one of "
                      << hash_sizes_str << endl;
-                throw EndException();
+                throw EndException(1);
             }
         }
 
@@ -92,7 +114,7 @@ cxxopts::ParseResult parse(int argc, char* argv[])
     catch (const cxxopts::OptionException& e)
     {
         std::cerr << "error parsing options: " << e.what() << "\n";
-        exit(1);
+        throw EndException(1);
     }
 
 }
@@ -104,9 +126,9 @@ int main(int argc, char *argv[])
         auto result = parse(argc, argv);
 
         std::set<fs::path> paths_to_deduplicate;
-        if (result.count("file"))
+        if (result.count("path"))
         {
-            for (const auto &path : result["file"].as<vector<string>>())
+            for (const auto &path : result["path"].as<vector<string>>())
             {
                 try
                 {
@@ -139,26 +161,30 @@ int main(int argc, char *argv[])
         switch (hash_size)
         {
         case 1:
-            duplicates = find_duplicates<uint8_t>(result, paths_to_deduplicate);
+            duplicates = find_duplicates<uint8_t>(result, 
+                                                  paths_to_deduplicate);
             deal_with_duplicates(result, duplicates);
             break;
         case 2:
-            duplicates = find_duplicates<uint16_t>(result, paths_to_deduplicate);
+            duplicates = find_duplicates<uint16_t>(result, 
+                                                   paths_to_deduplicate);
             deal_with_duplicates(result, duplicates);
             break;
         case 4:
-            duplicates = find_duplicates<uint32_t>(result, paths_to_deduplicate);
+            duplicates = find_duplicates<uint32_t>(result, 
+                                                   paths_to_deduplicate);
             deal_with_duplicates(result, duplicates);
             break;
         default:
-            duplicates = find_duplicates<uint64_t>(result, paths_to_deduplicate);
+            duplicates = find_duplicates<uint64_t>(result, 
+                                                   paths_to_deduplicate);
             deal_with_duplicates(result, duplicates);
             break;
         }
     }
     catch(const EndException& e)
     {
-        return(0);
+        return(e.bad());
     }
     
     return 0;
