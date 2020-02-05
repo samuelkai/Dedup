@@ -38,7 +38,7 @@ void prompt_duplicate_deletions(const vector<vector<fs::path>> duplicates)
     {
         for (size_t i = 1; i <= dup_vec.size(); i++)
         {
-            cout << "[" << i << "] " << dup_vec[i-1] << "\n";
+            cout << "[" << i << "] " << dup_vec[i-1].string() << "\n";
         }
         cout << endl;
 
@@ -145,7 +145,7 @@ void deal_with_duplicates(const cxxopts::ParseResult &result,
         {
             for (size_t i = 0; i < dup_vec.size(); i++)
             {
-                cout << dup_vec[i] << "\n";
+                cout << dup_vec[i].string() << "\n";
             }
             cout << endl;
         }

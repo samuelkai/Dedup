@@ -61,7 +61,6 @@ void insert_into_dedup_table(const fs::path &path, DedupTable<T> &dedup_table,
         {
             return;
         }
-
         
         auto hash = hash_file(path, bytes);
         // Truncate the hash to the specified length
