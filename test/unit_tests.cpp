@@ -55,6 +55,9 @@ cxxopts::ParseResult parse(int argc, char* argv[])
         ("a,hash", "Hash digest size in bytes, valid values are " + 
             hash_sizes_str, cxxopts::value<int>()->default_value(
             std::to_string(DEFAULT_HASH_SIZE)), "N")
+        ("c,skip-count", "Skip initial file counting. Speeds up the "
+            "process but disables the progress bar.",
+            cxxopts::value<bool>()->default_value("false"))
     ;
 
     options.parse_positional({"path"});

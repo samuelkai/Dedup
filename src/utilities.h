@@ -10,21 +10,21 @@
 class FileException : public std::runtime_error
 {
     public:
-        FileException(std::string path1);
+        FileException(std::string path);
 };
 
 /**
  * Returns true if the contents of the files in the given paths are exactly
  * the same.
  */
-bool compare_files(const std::filesystem::path &p1,
-                  const std::filesystem::path &p2);
+bool compare_files(const std::filesystem::path &path1,
+                  const std::filesystem::path &path2);
 
 /**
  * Return the 64-bit XXHash digest of the beginning of the file in the given 
  * path. Parameter "bytes" specifies the number of bytes that are considered.
  * If bytes == 0, the whole file is hashed.
  */
-uint64_t hash_file(const std::filesystem::path &p, uint64_t bytes);
+uint64_t hash_file(const std::filesystem::path &path, uint64_t bytes);
 
 #endif // UTILITIES_H

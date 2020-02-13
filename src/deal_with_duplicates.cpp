@@ -30,7 +30,7 @@ bool is_positive_integer(const std::string& s)
  * Asks the user to select on the command line which files are kept 
  * in each set of duplicates.
  */
-void prompt_duplicate_deletions(const vector<vector<fs::path>> duplicates)
+void prompt_duplicate_deletions(const vector<vector<fs::path>> &duplicates)
 {
     cout << endl;
     // For each set of duplicates
@@ -117,7 +117,7 @@ void prompt_duplicate_deletions(const vector<vector<fs::path>> duplicates)
  * List, summarize or prompt for deletion.
  */
 void deal_with_duplicates(const cxxopts::ParseResult &result, 
-                          const vector<vector<fs::path>> duplicates)
+                          const vector<vector<fs::path>> &duplicates)
 {
     bool list = result["list"].as<bool>();
     bool summarize = result["summarize"].as<bool>();
