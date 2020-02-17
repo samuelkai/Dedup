@@ -10,7 +10,7 @@
 class FileException : public std::runtime_error
 {
     public:
-        FileException(std::string path);
+        FileException(std::filesystem::path path);
 };
 
 /**

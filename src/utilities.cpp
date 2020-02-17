@@ -16,8 +16,8 @@ namespace fs = std::filesystem;
 /**
  * Exception that compare_files throws when it can't open a file.
  */
-FileException::FileException(string path) :
-    std::runtime_error("Error opening file: " + path)
+FileException::FileException(fs::path path) :
+    std::runtime_error("Error opening file: " + path.string())
 {
 }
 
