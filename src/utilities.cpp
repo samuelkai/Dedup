@@ -5,10 +5,11 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <limits>
 #include <string>
+#include <vector>
 
 using std::string;
+using std::vector;
 
 namespace fs = std::filesystem;
 
@@ -144,4 +145,21 @@ uint64_t hash_file(const fs::path &path, uint64_t bytes)
     XXH64_freeState(state);
     
     return (uint64_t)hash;
+}
+
+string format_bytes(uintmax_t bytes)
+{
+    vector<string> prefixes = {"", "kibi", "mebi", "gibi", "tebi", "pebi"};
+    size_t i = 0;
+    double dbl_bytes = static_cast<double>(bytes);
+    while (dbl_bytes > 1024 && i < prefixes.size())
+    {
+        dbl_bytes = dbl_bytes / 1024;
+        i++;
+    }
+
+    std::ostringstream out;
+    out.precision(2);
+    out << std::fixed << dbl_bytes << " " << prefixes[i] << "bytes";
+    return out.str();
 }

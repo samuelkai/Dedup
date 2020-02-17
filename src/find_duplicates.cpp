@@ -19,8 +19,6 @@ using std::vector;
 namespace ch = std::chrono;
 namespace fs = std::filesystem;
 
-constexpr int progress_bar_width = 70;
-
 /**
  * Checks the given vector of duplicate file vectors for a file that has the
  * same content as the file in the given path. If found, inserts the path
@@ -89,26 +87,17 @@ void insert_into_dedup_table(const fs::path &path, DedupTable<T> &dedup_table,
     }
 }
 
-void draw_progress_bar(size_t total_count, size_t current_count) {
-    float progress = (float)current_count / (float)total_count;
-    cout << "[";
-    int pos = progress_bar_width * progress;
-    for (int i = 0; i < progress_bar_width; ++i) {
-        if (i < pos) cout << "=";
-        else if (i == pos) cout << ">";
-        else cout << " ";
-    }
-    cout << "] " << int(progress * 100.0) << " %\r";
-    cout.flush();
-}
-
 class DirectoryOperation {
+        bool b_has_progress;
     public:
-        virtual void increment() {};
-        virtual size_t get_total_count() {return 0;};
-        virtual size_t get_current_count() {return 0;};
-        virtual size_t get_step_size() {return 0;};
-        virtual void insert(const fs::path&) {};
+        DirectoryOperation(bool p)
+            : b_has_progress(p) {}
+
+        virtual void insert(const fs::path&) = 0;
+        bool has_progress()
+        {
+            return b_has_progress;
+        }
 };
 
 template <typename T>
@@ -116,14 +105,21 @@ class InsertOperation : public DirectoryOperation {
         DedupTable<T> &dedup_table;
         uint64_t bytes;
         size_t current_count;
+        uintmax_t current_size;
     public:
-        InsertOperation(DedupTable<T> &d, uint64_t b) : dedup_table(d), 
-            bytes(b), current_count(0) {}
-        void insert(const fs::path &path) override {insert_into_dedup_table(path, dedup_table,
-            bytes); current_count++;}
-        virtual size_t get_total_count() {return 0;};
-        virtual size_t get_current_count() {return current_count;};
-        virtual size_t get_step_size() {return 0;};
+        InsertOperation(DedupTable<T> &d, uint64_t b, bool p = false)
+            : DirectoryOperation(p), dedup_table(d), bytes(b), current_count(0),
+              current_size(0) {}
+        
+        void insert(const fs::path &path) override
+        {
+            insert_into_dedup_table(path, dedup_table, bytes);
+            current_count++;
+            current_size += fs::file_size(path);
+        }
+
+        virtual size_t get_current_count() {return current_count;}
+        virtual size_t get_current_size() {return current_size;}
 };
 
 template <typename T>
@@ -131,7 +127,9 @@ class ProgressInsertOperation : public InsertOperation<T> {
         size_t total_count;
         size_t step_size;
     public:
-        ProgressInsertOperation(DedupTable<T> &d, uint64_t b, size_t t_c, size_t s) : InsertOperation<T>(d,b), total_count(t_c)
+        ProgressInsertOperation(DedupTable<T> &d, uint64_t b, size_t t_c, 
+            size_t s)
+            : InsertOperation<T>(d, b, true), total_count(t_c)
         {
             if (s == 0) {
                 step_size = 1;
@@ -140,36 +138,59 @@ class ProgressInsertOperation : public InsertOperation<T> {
                 step_size = s;
             }
         }
-        size_t get_total_count() override {return total_count;}
-        size_t get_step_size() override {return step_size;}
+
+        size_t get_total_count() {return total_count;}
+        size_t get_step_size() {return step_size;}
 };
 
 class CountOperation : public DirectoryOperation {
         size_t count;
+        uintmax_t size;
     public:
-        CountOperation() : count(0) {};
-        void increment() override {count++;}
+        CountOperation()
+            : DirectoryOperation(false), count(0), size(0) {};
+
+        void insert(const fs::path &path) override
+        {
+            count++;
+            size += fs::file_size(path);
+        }
+
         size_t get_count() {return count;}
+        uintmax_t get_size() {return size;}
 };
 
-inline void handle_file_path(const fs::path &path, bool just_count, 
-    DirectoryOperation &op)
-{
-    if (just_count)
+/**
+ * Draws a bar on the terminal showing the progress on finding duplicates.
+ */
+template <typename T>
+void draw_progress(ProgressInsertOperation<T> &op) {
+    size_t curr_f_cnt = op.get_current_count();
+    size_t tot_f_cnt = op.get_total_count();
+    size_t step_size = op.get_step_size();
+
+    if (step_size > 0 && curr_f_cnt % step_size == 0)
     {
-        op.increment();
-    }
-    else
-    {
-        op.insert(path);
-        if (op.get_step_size() > 0 && op.get_current_count() % op.get_step_size() == 0)
-        {
-            draw_progress_bar(op.get_total_count(), op.get_current_count());
-        }
+        float progress = static_cast<float>(curr_f_cnt) 
+            / static_cast<float>(tot_f_cnt);
+        cout << "\r" << "File " << curr_f_cnt << "/" << tot_f_cnt 
+            << " (" << int(progress * 100.0) << " %)";
+        cout.flush();
     }
 }
 
-void traverse_directory_recursively(const fs::path &directory, bool just_count, DirectoryOperation &op)
+template <typename T>
+inline void handle_file_path(const fs::path &path, DirectoryOperation &op)
+{
+    op.insert(path);
+    if (op.has_progress())
+    {
+        draw_progress(static_cast<ProgressInsertOperation<T>&>(op));
+    }
+}
+
+template <typename T>
+void traverse_directory_recursively(const fs::path &directory, DirectoryOperation &op)
 {    
     fs::recursive_directory_iterator iter(directory);
     fs::recursive_directory_iterator end;
@@ -204,7 +225,7 @@ void traverse_directory_recursively(const fs::path &directory, bool just_count, 
         else if (fs::is_regular_file(
                     fs::symlink_status(iter_path)))
         {
-            handle_file_path(iter_path, just_count, op);
+            handle_file_path<T>(iter_path, op);
         }
     }
 }
@@ -214,13 +235,14 @@ void traverse_directory_recursively(const fs::path &directory, bool just_count, 
  * Only regular files are checked.
  * Directories are traversed recursively if wanted.
  */
-void traverse_path(const fs::path &path, bool recursive, bool just_count, DirectoryOperation &op)
+template <typename T>
+void traverse_path(const fs::path &path, bool recursive, DirectoryOperation &op)
 {            
     if (fs::is_directory(path))
     {
         if (recursive)
         {
-            traverse_directory_recursively(path, just_count, op);
+            traverse_directory_recursively<T>(path, op);
         }
         else
         {
@@ -231,14 +253,14 @@ void traverse_path(const fs::path &path, bool recursive, bool just_count, Direct
                 const fs::path iter_path(iter->path());
                 if (fs::is_regular_file(fs::symlink_status(iter_path)))
                 {
-                    handle_file_path(iter_path, just_count, op);
+                    handle_file_path<T>(iter_path, op);
                 }
             }
         }
     }
     else if (fs::is_regular_file(fs::symlink_status(path)))
     {
-        handle_file_path(path, just_count, op);
+        handle_file_path<T>(path, op);
     }
     else // not a regular file or directory
     {
@@ -269,68 +291,61 @@ vector<vector<fs::path>> find_duplicates(const cxxopts::ParseResult &result,
 
     if (!skip_count)
     {
+        cout << "Counting number and size of files in given paths..." << endl;
         CountOperation cop = CountOperation();
-        auto start_time_count = ch::steady_clock::now();
+        
         for (const auto &path : paths_to_deduplicate)
         {
-            traverse_path(path, recursive, true, cop);
+            traverse_path<T>(path, recursive, cop);
         }
-        ch::duration<double, std::milli> elapsed_time_count =
-            ch::steady_clock::now() - start_time_count;
+        
         size_t total_count = cop.get_count();
-        cout << "Counting of " << total_count << " files took " << elapsed_time_count.count()
-                << " milliseconds." << endl;
+        uintmax_t total_size = cop.get_size();
+        cout << "Counted " << total_count << " files occupying "
+             << format_bytes(total_size) << "." << endl;
 
-        ProgressInsertOperation piop = ProgressInsertOperation(dedup_table, 
+
+        ProgressInsertOperation piop = ProgressInsertOperation<T>(dedup_table, 
         bytes, total_count, total_count / 20);
-        auto start_time = ch::steady_clock::now();
         for (const auto &path : paths_to_deduplicate)
         {
             try
             {
                 cout << "Searching " << path << " for duplicates"
-                    << (recursive ? " recursively" : "") << endl;
-                traverse_path(path, recursive, false, piop);
+                    << (recursive ? " recursively" : "") << "..." << endl;
+                traverse_path<T>(path, recursive, piop);
             }
             catch (const std::exception &e)
             {
                 cerr << e.what() << "\n\n";
             }
         }
-        ch::duration<double, std::milli> elapsed_time =
-            ch::steady_clock::now() - start_time;
-
-        for (int i = 0; i < progress_bar_width + 10; ++i) {
-            cout << " ";
-        }
-
-        cout << "\r" << "Done checking " << piop.get_current_count() << " files."
-             << endl << "Gathering of hashes took " << elapsed_time.count()
-             << " milliseconds." << endl;
+        cout << "\r" << "Done checking " << total_count 
+             << " files occupying " << format_bytes(total_size) << "."
+             << endl << endl;
     }
     else
     {
-        InsertOperation iop = InsertOperation(dedup_table, bytes);
-        auto start_time = ch::steady_clock::now();
+        InsertOperation iop = InsertOperation<T>(dedup_table, bytes);
         for (const auto &path : paths_to_deduplicate)
         {
             try
             {
                 cout << "Searching " << path << " for duplicates"
-                    << (recursive ? " recursively" : "") << endl;
-                traverse_path(path, recursive, false, iop);
+                    << (recursive ? " recursively" : "") << "..." << endl;
+                traverse_path<T>(path, recursive, iop);
             }
             catch (const std::exception &e)
             {
                 cerr << e.what() << "\n\n";
             }
         }
-        ch::duration<double, std::milli> elapsed_time =
-            ch::steady_clock::now() - start_time;
 
-        cout << "\r" << "Done checking " << iop.get_current_count() << " files."
-             << endl << "Gathering of hashes took " << elapsed_time.count()
-             << " milliseconds." << endl;
+        size_t total_count = iop.get_current_count();
+        uintmax_t total_size = iop.get_current_size();
+        cout << "\r" << "Done checking " << total_count 
+             << " files occupying " << format_bytes(total_size) << "."
+             << endl << endl;
     }
         
     // Includes vectors of files whose whole content is the same

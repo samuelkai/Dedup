@@ -27,4 +27,6 @@ bool compare_files(const std::filesystem::path &path1,
  */
 uint64_t hash_file(const std::filesystem::path &path, uint64_t bytes);
 
+std::string format_bytes(uintmax_t bytes);
+
 #endif // UTILITIES_H

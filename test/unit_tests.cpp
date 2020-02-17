@@ -40,23 +40,23 @@ cxxopts::ParseResult parse(int argc, char* argv[])
         ("path", "path", cxxopts::value<vector<string>>(), "PATH");
 
     options.add_options("Optional")
-        ("h,help", "Print help")
-        ("l,list", "List found duplicates, don't prompt for deduplication", 
-            cxxopts::value<bool>()->default_value("false"))
-        ("s,summarize", "Print only a summary of found duplicates, "
-            "don't prompt for deduplication",
-            cxxopts::value<bool>()->default_value("false"))
-        ("r,recursive", "Search the paths for duplicates recursively",
-            cxxopts::value<bool>()->default_value("false"))
+        ("a,hash", "Hash digest size in bytes, valid values are " + 
+            hash_sizes_str, cxxopts::value<int>()->default_value(
+            std::to_string(DEFAULT_HASH_SIZE)), "N")
         ("b,bytes", "Number of bytes from the beginning of each file that "
             "are used in hash calculation. "
             "0 means that the whole file is hashed.",
             cxxopts::value<uint64_t>()->default_value("4096"), "N")
-        ("a,hash", "Hash digest size in bytes, valid values are " + 
-            hash_sizes_str, cxxopts::value<int>()->default_value(
-            std::to_string(DEFAULT_HASH_SIZE)), "N")
         ("c,skip-count", "Skip initial file counting. Speeds up the "
             "process but disables the progress bar.",
+            cxxopts::value<bool>()->default_value("false"))
+        ("h,help", "Print this help")
+        ("l,list", "List found duplicates, don't prompt for deduplication", 
+            cxxopts::value<bool>()->default_value("false"))
+        ("r,recursive", "Search the paths for duplicates recursively",
+            cxxopts::value<bool>()->default_value("false"))
+        ("s,summarize", "Print only a summary of found duplicates, "
+            "don't prompt for deduplication",
             cxxopts::value<bool>()->default_value("false"))
     ;
 

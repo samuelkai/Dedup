@@ -1,4 +1,5 @@
 #include "deal_with_duplicates.h"
+#include "utilities.h"
 
 #include "cxxopts/cxxopts.hpp"
 
@@ -128,15 +129,18 @@ void deal_with_duplicates(const cxxopts::ParseResult &result,
         return;
     }
 
-    unsigned int number_of_duplicate_files = 0;
+    size_t number_of_duplicate_files = 0;
+    uintmax_t duplicates_size = 0;
     for (const auto &dup_vec : duplicates)
     {
         // A set of n identical files has n - 1 duplicate files
         number_of_duplicate_files += dup_vec.size() - 1;
+        duplicates_size += (dup_vec.size() - 1) * fs::file_size(dup_vec[0]);
     }
 
-    cout << "\n" << "Found " << number_of_duplicate_files
-         << " duplicate files in " << duplicates.size() << " sets." << endl; 
+    cout << "Found " << number_of_duplicate_files
+         << " duplicate files in " << duplicates.size() << " sets.\n" 
+         << format_bytes(duplicates_size) << " could be freed." << endl; 
 
     if (list) // List found duplicates, don't prompt their deletion
     {
