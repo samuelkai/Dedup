@@ -53,7 +53,7 @@ cxxopts::ParseResult parse(int argc, char* argv[])
         ("h,help", "Print this help")
         ("l,list", "List found duplicates, don't prompt for deduplication", 
             cxxopts::value<bool>()->default_value("false"))
-        ("r,recursive", "Search the paths for duplicates recursively",
+        ("r,recurse", "Search the paths for duplicates recursively",
             cxxopts::value<bool>()->default_value("false"))
         ("s,summarize", "Print only a summary of found duplicates, "
             "don't prompt for deduplication",

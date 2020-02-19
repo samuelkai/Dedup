@@ -3,7 +3,6 @@
 
 #include "cxxopts/cxxopts.hpp"
 
-#include <chrono>
 #include <filesystem>
 #include <iostream>
 #include <set>
@@ -16,7 +15,6 @@ using std::endl;
 using std::string;
 using std::vector;
 
-namespace ch = std::chrono;
 namespace fs = std::filesystem;
 
 /**
@@ -105,20 +103,33 @@ class InsertOperation : public DirectoryOperation {
         DedupTable<T> &dedup_table;
         uint64_t bytes;
         size_t current_count;
-        uintmax_t current_size;
     public:
-        InsertOperation(DedupTable<T> &d, uint64_t b, bool p = false)
-            : DirectoryOperation(p), dedup_table(d), bytes(b), current_count(0),
-              current_size(0) {}
-        
-        void insert(const fs::path &path) override
+        InsertOperation(DedupTable<T> &d, uint64_t b, bool p)
+            : DirectoryOperation(p), dedup_table(d), bytes(b), 
+              current_count(0) {}
+
+        void insert_into_own_dedup_table(const fs::path &path)
         {
             insert_into_dedup_table(path, dedup_table, bytes);
             current_count++;
-            current_size += fs::file_size(path);
         }
 
         virtual size_t get_current_count() {return current_count;}
+};
+
+template <typename T>
+class NoProgressInsertOperation : public InsertOperation<T> {
+        uintmax_t current_size;
+    public:
+        NoProgressInsertOperation(DedupTable<T> &d, uint64_t b)
+            : InsertOperation<T>(d, b, false), current_size(0) {}
+
+        void insert(const fs::path &path) override
+        {
+            InsertOperation<T>::insert_into_own_dedup_table(path);
+            current_size += fs::file_size(path);
+        }
+
         virtual size_t get_current_size() {return current_size;}
 };
 
@@ -137,6 +148,11 @@ class ProgressInsertOperation : public InsertOperation<T> {
             else {
                 step_size = s;
             }
+        }
+
+        void insert(const fs::path &path) override
+        {
+            InsertOperation<T>::insert_into_own_dedup_table(path);
         }
 
         size_t get_total_count() {return total_count;}
@@ -236,11 +252,11 @@ void traverse_directory_recursively(const fs::path &directory, DirectoryOperatio
  * Directories are traversed recursively if wanted.
  */
 template <typename T>
-void traverse_path(const fs::path &path, bool recursive, DirectoryOperation &op)
+void traverse_path(const fs::path &path, bool recurse, DirectoryOperation &op)
 {            
     if (fs::is_directory(path))
     {
-        if (recursive)
+        if (recurse)
         {
             traverse_directory_recursively<T>(path, op);
         }
@@ -286,7 +302,7 @@ vector<vector<fs::path>> find_duplicates(const cxxopts::ParseResult &result,
 {
     DedupTable<T> dedup_table;
     uint64_t bytes = result["bytes"].as<uint64_t>();
-    bool recursive = result["recursive"].as<bool>();
+    bool recurse = result["recurse"].as<bool>();
     bool skip_count = result["skip-count"].as<bool>();
 
     if (!skip_count)
@@ -296,7 +312,7 @@ vector<vector<fs::path>> find_duplicates(const cxxopts::ParseResult &result,
         
         for (const auto &path : paths_to_deduplicate)
         {
-            traverse_path<T>(path, recursive, cop);
+            traverse_path<T>(path, recurse, cop);
         }
         
         size_t total_count = cop.get_count();
@@ -312,8 +328,8 @@ vector<vector<fs::path>> find_duplicates(const cxxopts::ParseResult &result,
             try
             {
                 cout << "Searching " << path << " for duplicates"
-                    << (recursive ? " recursively" : "") << "..." << endl;
-                traverse_path<T>(path, recursive, piop);
+                    << (recurse ? " recursively" : "") << "..." << endl;
+                traverse_path<T>(path, recurse, piop);
             }
             catch (const std::exception &e)
             {
@@ -326,14 +342,15 @@ vector<vector<fs::path>> find_duplicates(const cxxopts::ParseResult &result,
     }
     else
     {
-        InsertOperation iop = InsertOperation<T>(dedup_table, bytes);
+        NoProgressInsertOperation iop = 
+            NoProgressInsertOperation<T>(dedup_table, bytes);
         for (const auto &path : paths_to_deduplicate)
         {
             try
             {
                 cout << "Searching " << path << " for duplicates"
-                    << (recursive ? " recursively" : "") << "..." << endl;
-                traverse_path<T>(path, recursive, iop);
+                    << (recurse ? " recursively" : "") << "..." << endl;
+                traverse_path<T>(path, recurse, iop);
             }
             catch (const std::exception &e)
             {

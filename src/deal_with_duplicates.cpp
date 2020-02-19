@@ -3,7 +3,6 @@
 
 #include "cxxopts/cxxopts.hpp"
 
-#include <algorithm>
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -139,7 +138,9 @@ void deal_with_duplicates(const cxxopts::ParseResult &result,
     }
 
     cout << "Found " << number_of_duplicate_files
-         << " duplicate files in " << duplicates.size() << " sets.\n" 
+         << " duplicate file" << (number_of_duplicate_files > 1 ? "s" : "") 
+         << " in " << duplicates.size() 
+         << " set" << (duplicates.size() > 1 ? "s" : "") << ".\n"
          << format_bytes(duplicates_size) << " could be freed." << endl; 
 
     if (list) // List found duplicates, don't prompt their deletion
