@@ -91,7 +91,7 @@ class DirectoryOperation {
         DirectoryOperation(bool p)
             : b_has_progress(p) {}
 
-        virtual void insert(const fs::path&) = 0;
+        virtual void insert(const fs::directory_entry&) = 0;
         bool has_progress()
         {
             return b_has_progress;
@@ -108,9 +108,9 @@ class InsertOperation : public DirectoryOperation {
             : DirectoryOperation(p), dedup_table(d), bytes(b), 
               current_count(0) {}
 
-        void insert_into_own_dedup_table(const fs::path &path)
+        void insert_into_own_dedup_table(const fs::directory_entry &entry)
         {
-            insert_into_dedup_table(path, dedup_table, bytes);
+            insert_into_dedup_table(entry, dedup_table, bytes);
             current_count++;
         }
 
@@ -124,10 +124,10 @@ class NoProgressInsertOperation : public InsertOperation<T> {
         NoProgressInsertOperation(DedupTable<T> &d, uint64_t b)
             : InsertOperation<T>(d, b, false), current_size(0) {}
 
-        void insert(const fs::path &path) override
+        void insert(const fs::directory_entry &entry) override
         {
-            InsertOperation<T>::insert_into_own_dedup_table(path);
-            current_size += fs::file_size(path);
+            InsertOperation<T>::insert_into_own_dedup_table(entry);
+            current_size += entry.file_size();
         }
 
         virtual size_t get_current_size() {return current_size;}
@@ -150,9 +150,9 @@ class ProgressInsertOperation : public InsertOperation<T> {
             }
         }
 
-        void insert(const fs::path &path) override
+        void insert(const fs::directory_entry &entry) override
         {
-            InsertOperation<T>::insert_into_own_dedup_table(path);
+            InsertOperation<T>::insert_into_own_dedup_table(entry);
         }
 
         size_t get_total_count() {return total_count;}
@@ -166,10 +166,10 @@ class CountOperation : public DirectoryOperation {
         CountOperation()
             : DirectoryOperation(false), count(0), size(0) {};
 
-        void insert(const fs::path &path) override
+        void insert(const fs::directory_entry &entry) override
         {
             count++;
-            size += fs::file_size(path);
+            size += entry.file_size();
         }
 
         size_t get_count() {return count;}
@@ -196,7 +196,7 @@ void draw_progress(ProgressInsertOperation<T> &op) {
 }
 
 template <typename T>
-inline void handle_file_path(const fs::path &path, DirectoryOperation &op)
+inline void handle_file_path(const fs::directory_entry &path, DirectoryOperation &op)
 {
     op.insert(path);
     if (op.has_progress())
@@ -241,7 +241,7 @@ void traverse_directory_recursively(const fs::path &directory, DirectoryOperatio
         else if (fs::is_regular_file(
                     fs::symlink_status(iter_path)))
         {
-            handle_file_path<T>(iter_path, op);
+            handle_file_path<T>(*iter, op);
         }
     }
 }
@@ -269,14 +269,14 @@ void traverse_path(const fs::path &path, bool recurse, DirectoryOperation &op)
                 const fs::path iter_path(iter->path());
                 if (fs::is_regular_file(fs::symlink_status(iter_path)))
                 {
-                    handle_file_path<T>(iter_path, op);
+                    handle_file_path<T>(*iter, op);
                 }
             }
         }
     }
     else if (fs::is_regular_file(fs::symlink_status(path)))
     {
-        handle_file_path<T>(path, op);
+        handle_file_path<T>(fs::directory_entry(path), op);
     }
     else // not a regular file or directory
     {

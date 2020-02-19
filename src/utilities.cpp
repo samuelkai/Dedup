@@ -51,7 +51,7 @@ bool compare_files(const fs::path &path1, const fs::path &path2)
     f1.seekg(0, std::ifstream::beg);
     f2.seekg(0, std::ifstream::beg);
 
-    size_t const buffer_size = 4096;
+    constexpr size_t buffer_size = 4096;
     char input_buffer1[buffer_size];
     char input_buffer2[buffer_size];
     

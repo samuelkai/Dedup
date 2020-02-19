@@ -79,10 +79,20 @@ int main(int argc, char *argv[])
             break;
         }
     }
-    catch(const EndException& e)
+    catch(const EndException &e)
     {
         return(e.is_bad());
     }
-    
+    catch(const std::exception &e)
+    {
+        std::cerr << e.what() << '\n';
+        return 1;
+    }
+    catch(...)
+    {
+        std::cerr << "Unknown exception. Terminating program." << '\n';
+        return 1;
+    }
+
     return 0;
 }
