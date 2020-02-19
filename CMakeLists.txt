@@ -28,6 +28,7 @@ target_include_directories(xxH PRIVATE
 # A library for source files other than main
 #-------------------------------------------------
 add_library(Others
+    ${SOURCE_DIR}/parse.cpp
     ${SOURCE_DIR}/find_duplicates.cpp
     ${SOURCE_DIR}/deal_with_duplicates.cpp
     ${SOURCE_DIR}/utilities.cpp

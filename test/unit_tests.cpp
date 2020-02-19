@@ -1,5 +1,6 @@
 #include "find_duplicates.h"
 #include "catch2/catch.hpp"
+#include "parse.h"
 
 #include <filesystem>
 #include <fstream>
@@ -14,58 +15,6 @@ using std::string;
 using std::vector;
 
 namespace fs = std::filesystem;
-
-/**
- * Needed in order to get the ParseResult.
- */
-cxxopts::ParseResult parse(int argc, char* argv[])
-{
-    const vector<int> hash_sizes = {1,2,4,8};
-    const int DEFAULT_HASH_SIZE = 8;
-    string hash_sizes_str;
-    for (size_t i = 0; i < hash_sizes.size(); ++i) {
-        hash_sizes_str += std::to_string(hash_sizes[i]);
-        if (i+1 != hash_sizes.size())
-        {
-            hash_sizes_str += ", ";
-        }
-    }
-
-    cxxopts::Options options(argv[0], " - find duplicate files");
-    options
-        .positional_help("path1 [path2] [path3]...")
-        .show_positional_help();
-
-    options.add_options()
-        ("path", "path", cxxopts::value<vector<string>>(), "PATH");
-
-    options.add_options("Optional")
-        ("a,hash", "Hash digest size in bytes, valid values are " + 
-            hash_sizes_str, cxxopts::value<int>()->default_value(
-            std::to_string(DEFAULT_HASH_SIZE)), "N")
-        ("b,bytes", "Number of bytes from the beginning of each file that "
-            "are used in hash calculation. "
-            "0 means that the whole file is hashed.",
-            cxxopts::value<uint64_t>()->default_value("4096"), "N")
-        ("c,skip-count", "Skip initial file counting. Speeds up the "
-            "process but disables the progress bar.",
-            cxxopts::value<bool>()->default_value("false"))
-        ("h,help", "Print this help")
-        ("l,list", "List found duplicates, don't prompt for deduplication", 
-            cxxopts::value<bool>()->default_value("false"))
-        ("r,recurse", "Search the paths for duplicates recursively",
-            cxxopts::value<bool>()->default_value("false"))
-        ("s,summarize", "Print only a summary of found duplicates, "
-            "don't prompt for deduplication",
-            cxxopts::value<bool>()->default_value("false"))
-    ;
-
-    options.parse_positional({"path"});
-
-    auto result = options.parse(argc, argv);
-
-    return result;
-}
 
 TEST_CASE( "simple" )
 {
