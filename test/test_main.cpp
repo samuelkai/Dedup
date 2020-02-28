@@ -16,7 +16,7 @@ struct MyListener : Catch::TestEventListenerBase {
     void testRunStarting( Catch::TestRunInfo 
         const& testRunInfo __attribute__((unused))) override
     {
-        fs::path test_dir_path = 
+        const fs::path test_dir_path = 
             fs::temp_directory_path() / "dedup_test98437524";
         
         fs::remove_all(test_dir_path);
@@ -28,7 +28,7 @@ struct MyListener : Catch::TestEventListenerBase {
     void testRunEnded(Catch::TestRunStats 
         const& testRunStats __attribute__((unused))) override
     {
-        fs::path test_dir_path = 
+        const fs::path test_dir_path = 
             fs::temp_directory_path() / "dedup_test98437524";
 
         fs::remove_all(test_dir_path);

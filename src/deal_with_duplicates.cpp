@@ -36,7 +36,7 @@ void prompt_duplicate_deletions(const vector<vector<fs::path>> &duplicates)
     // For each set of duplicates
     for (const auto &dup_vec : duplicates)
     {
-        for (size_t i = 1; i <= dup_vec.size(); i++)
+        for (size_t i = 1; i <= dup_vec.size(); ++i)
         {
             cout << "[" << i << "] " << dup_vec[i-1].string() << "\n";
         }
@@ -53,11 +53,11 @@ void prompt_duplicate_deletions(const vector<vector<fs::path>> &duplicates)
             {
                 try
                 {
-                    unsigned int kept = std::stoi(input);
+                    const unsigned int kept = std::stoi(input);
                     // Given number must specify one of the duplicates
                     if (kept <= dup_vec.size())
                     {
-                        for (size_t i = 1; i <= dup_vec.size(); i++)
+                        for (size_t i = 1; i <= dup_vec.size(); ++i)
                         {
                             // Remove all others
                             if (i != kept)
@@ -119,8 +119,8 @@ void prompt_duplicate_deletions(const vector<vector<fs::path>> &duplicates)
 void deal_with_duplicates(const cxxopts::ParseResult &result, 
                           const vector<vector<fs::path>> &duplicates)
 {
-    bool list = result["list"].as<bool>();
-    bool summarize = result["summarize"].as<bool>();
+    const bool list = result["list"].as<bool>();
+    const bool summarize = result["summarize"].as<bool>();
 
     if (duplicates.empty())
     {
@@ -148,7 +148,7 @@ void deal_with_duplicates(const cxxopts::ParseResult &result,
         cout << "\n";
         for (const auto &dup_vec : duplicates)
         {
-            for (size_t i = 0; i < dup_vec.size(); i++)
+            for (size_t i = 0; i < dup_vec.size(); ++i)
             {
                 cout << dup_vec[i].string() << "\n";
             }

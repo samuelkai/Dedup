@@ -17,6 +17,18 @@ using std::vector;
 
 namespace fs = std::filesystem;
 
+// Stores file paths and hashes of file contents.
+// The key is the hash of the beginning N bytes of a file,
+// where N is a program argument.
+// The key type T is one of {uint8_t, uint16_t, uint32_t, uint64_t}.
+// The value contains the paths of all files that produce the same hash.
+// Because files can differ after the first N bytes, the outer vector contains
+// inner vectors that contain files whose whole content is the same.
+template <typename T>
+using DedupTable = std::unordered_map<T,std::vector
+                                        <std::vector
+                                        <std::filesystem::path>>>;
+
 /**
  * Checks the given vector of duplicate file vectors for a file that has the
  * same content as the file in the given path. If found, inserts the path
@@ -59,9 +71,8 @@ void insert_into_dedup_table(const fs::path &path, DedupTable<T> &dedup_table,
             return;
         }
         
-        auto hash = hash_file(path, bytes);
         // Truncate the hash to the specified length
-        hash = static_cast<T>(hash);
+        const auto hash = static_cast<T>(hash_file(path, bytes));
 
         if (dedup_table[hash].empty()) // First file that produces this hash
         {
@@ -86,22 +97,30 @@ void insert_into_dedup_table(const fs::path &path, DedupTable<T> &dedup_table,
 }
 
 class DirectoryOperation {
-        bool b_has_progress;
+        const bool b_has_progress;
+    protected:
+    //  Prevents slicing: https://stackoverflow.com/questions/49961811/must-a-c-interface-obey-the-rule-of-five
+        DirectoryOperation(const DirectoryOperation&) = default;
+        DirectoryOperation(DirectoryOperation&&) = default;
+        DirectoryOperation& operator=(const DirectoryOperation&) = default;
+        DirectoryOperation& operator=(DirectoryOperation&&) = default;
     public:
         DirectoryOperation(bool p)
-            : b_has_progress(p) {}
+            : b_has_progress(p) {}        
 
         virtual void insert(const fs::directory_entry&) = 0;
-        bool has_progress()
+        bool has_progress() const
         {
             return b_has_progress;
         }
+
+        virtual ~DirectoryOperation() = default;
 };
 
 template <typename T>
 class InsertOperation : public DirectoryOperation {
         DedupTable<T> &dedup_table;
-        uint64_t bytes;
+        const uint64_t bytes;
         size_t current_count;
     public:
         InsertOperation(DedupTable<T> &d, uint64_t b, bool p)
@@ -111,10 +130,10 @@ class InsertOperation : public DirectoryOperation {
         void insert_into_own_dedup_table(const fs::directory_entry &entry)
         {
             insert_into_dedup_table(entry, dedup_table, bytes);
-            current_count++;
+            ++current_count;
         }
 
-        virtual size_t get_current_count() {return current_count;}
+        size_t get_current_count() const {return current_count;}
 };
 
 template <typename T>
@@ -124,39 +143,32 @@ class NoProgressInsertOperation : public InsertOperation<T> {
         NoProgressInsertOperation(DedupTable<T> &d, uint64_t b)
             : InsertOperation<T>(d, b, false), current_size(0) {}
 
-        void insert(const fs::directory_entry &entry) override
+        void insert(const fs::directory_entry &entry) final override
         {
             InsertOperation<T>::insert_into_own_dedup_table(entry);
             current_size += entry.file_size();
         }
 
-        virtual size_t get_current_size() {return current_size;}
+        size_t get_current_size() const {return current_size;}
 };
 
 template <typename T>
 class ProgressInsertOperation : public InsertOperation<T> {
-        size_t total_count;
-        size_t step_size;
+        const size_t total_count;
+        const size_t step_size;
     public:
         ProgressInsertOperation(DedupTable<T> &d, uint64_t b, size_t t_c, 
             size_t s)
-            : InsertOperation<T>(d, b, true), total_count(t_c)
-        {
-            if (s == 0) {
-                step_size = 1;
-            }
-            else {
-                step_size = s;
-            }
-        }
+            : InsertOperation<T>(d, b, true), total_count(t_c), 
+              step_size( s == 0 ? 1 : s ) {}; // Prevent zero step size
 
-        void insert(const fs::directory_entry &entry) override
+        void insert(const fs::directory_entry &entry) final override
         {
             InsertOperation<T>::insert_into_own_dedup_table(entry);
         }
 
-        size_t get_total_count() {return total_count;}
-        size_t get_step_size() {return step_size;}
+        size_t get_total_count() const {return total_count;}
+        size_t get_step_size() const {return step_size;}
 };
 
 class CountOperation : public DirectoryOperation {
@@ -166,14 +178,14 @@ class CountOperation : public DirectoryOperation {
         CountOperation()
             : DirectoryOperation(false), count(0), size(0) {};
 
-        void insert(const fs::directory_entry &entry) override
+        void insert(const fs::directory_entry &entry) final override
         {
-            count++;
+            ++count;
             size += entry.file_size();
         }
 
-        size_t get_count() {return count;}
-        uintmax_t get_size() {return size;}
+        size_t get_count() const {return count;}
+        uintmax_t get_size() const {return size;}
 };
 
 /**
@@ -181,13 +193,13 @@ class CountOperation : public DirectoryOperation {
  */
 template <typename T>
 void draw_progress(ProgressInsertOperation<T> &op) {
-    size_t curr_f_cnt = op.get_current_count();
-    size_t tot_f_cnt = op.get_total_count();
-    size_t step_size = op.get_step_size();
+    const size_t curr_f_cnt = op.get_current_count();
+    const size_t tot_f_cnt = op.get_total_count();
+    const size_t step_size = op.get_step_size();
 
     if (step_size > 0 && curr_f_cnt % step_size == 0)
     {
-        float progress = static_cast<float>(curr_f_cnt) 
+        const float progress = static_cast<float>(curr_f_cnt) 
             / static_cast<float>(tot_f_cnt);
         cout << "\r" << "File " << curr_f_cnt << "/" << tot_f_cnt 
             << " (" << int(progress * 100.0) << " %)";
@@ -209,7 +221,7 @@ template <typename T>
 void traverse_directory_recursively(const fs::path &directory, DirectoryOperation &op)
 {    
     fs::recursive_directory_iterator iter(directory);
-    fs::recursive_directory_iterator end;
+    const fs::recursive_directory_iterator end;
     for (; iter != end; ++iter)
     {
         const fs::path iter_path(iter->path());
@@ -221,15 +233,14 @@ void traverse_directory_recursively(const fs::path &directory, DirectoryOperatio
         {
             try
             {
-                fs::path path_before_change
-                            = fs::current_path();
+                const fs::path path_before_change = fs::current_path();
                 // Try to cd to the directory
                 // so its files can be accessed
                 fs::current_path(iter_path);
                 fs::current_path(path_before_change);
                 // Try to read the file list 
                 // of the directory
-                fs::directory_iterator read_chk(iter_path);
+                const fs::directory_iterator read_chk(iter_path);
             }
             catch(const std::exception& e)
             {
@@ -263,7 +274,7 @@ void traverse_path(const fs::path &path, bool recurse, DirectoryOperation &op)
         else
         {
             fs::directory_iterator iter(path);                    
-            fs::directory_iterator end; 
+            const fs::directory_iterator end; 
             for (; iter != end; ++iter)
             {
                 const fs::path iter_path(iter->path());
@@ -301,9 +312,10 @@ vector<vector<fs::path>> find_duplicates(const cxxopts::ParseResult &result,
     const std::set<fs::path> &paths_to_deduplicate)
 {
     DedupTable<T> dedup_table;
-    uint64_t bytes = result["bytes"].as<uint64_t>();
-    bool recurse = result["recurse"].as<bool>();
-    bool skip_count = result["skip-count"].as<bool>();
+
+    const uint64_t bytes = result["bytes"].as<uint64_t>();
+    const bool recurse = result["recurse"].as<bool>();
+    const bool skip_count = result["skip-count"].as<bool>();
 
     if (!skip_count)
     {
@@ -315,8 +327,8 @@ vector<vector<fs::path>> find_duplicates(const cxxopts::ParseResult &result,
             traverse_path<T>(path, recurse, cop);
         }
         
-        size_t total_count = cop.get_count();
-        uintmax_t total_size = cop.get_size();
+        const size_t total_count = cop.get_count();
+        const uintmax_t total_size = cop.get_size();
         cout << "Counted " << total_count << " files occupying "
              << format_bytes(total_size) << "." << endl;
 
@@ -358,8 +370,8 @@ vector<vector<fs::path>> find_duplicates(const cxxopts::ParseResult &result,
             }
         }
 
-        size_t total_count = iop.get_current_count();
-        uintmax_t total_size = iop.get_current_size();
+        const size_t total_count = iop.get_current_count();
+        const uintmax_t total_size = iop.get_current_size();
         cout << "\r" << "Done checking " << total_count 
              << " files occupying " << format_bytes(total_size) << "."
              << endl << endl;

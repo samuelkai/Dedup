@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
 {
     try
     {
-        auto result = parse(argc, argv);
+        const auto result = parse(argc, argv);
 
         std::set<fs::path> paths_to_deduplicate;
         if (result.count("path"))
@@ -53,29 +53,24 @@ int main(int argc, char *argv[])
             return 0;
         }
         
-        int hash_size = result["hash"].as<int>();
-        vector<vector<fs::path>> duplicates; 
+        const int hash_size = result["hash"].as<int>();
         switch (hash_size)
         {
         case 1:
-            duplicates = find_duplicates<uint8_t>(result, 
-                                                  paths_to_deduplicate);
-            deal_with_duplicates(result, duplicates);
+            deal_with_duplicates(result, find_duplicates<uint8_t>(result, 
+                                                  paths_to_deduplicate));
             break;
         case 2:
-            duplicates = find_duplicates<uint16_t>(result, 
-                                                   paths_to_deduplicate);
-            deal_with_duplicates(result, duplicates);
+            deal_with_duplicates(result, find_duplicates<uint16_t>(result, 
+                                                  paths_to_deduplicate));
             break;
         case 4:
-            duplicates = find_duplicates<uint32_t>(result, 
-                                                   paths_to_deduplicate);
-            deal_with_duplicates(result, duplicates);
+            deal_with_duplicates(result, find_duplicates<uint32_t>(result, 
+                                                  paths_to_deduplicate));
             break;
         default:
-            duplicates = find_duplicates<uint64_t>(result, 
-                                                   paths_to_deduplicate);
-            deal_with_duplicates(result, duplicates);
+            deal_with_duplicates(result, find_duplicates<uint64_t>(result, 
+                                                  paths_to_deduplicate));
             break;
         }
     }

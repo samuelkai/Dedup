@@ -26,7 +26,7 @@ cxxopts::ParseResult parse(int argc, char* argv[])
     {
         // Possible sizes for the hash digest in bytes
         const vector<int> hash_sizes = {1,2,4,8};
-        const int DEFAULT_HASH_SIZE = 8;
+        constexpr int DEFAULT_HASH_SIZE = 8;
 
         string hash_sizes_str;
         for (size_t i = 0; i < hash_sizes.size(); ++i) {
@@ -73,7 +73,7 @@ cxxopts::ParseResult parse(int argc, char* argv[])
 
         options.parse_positional({"path"});
 
-        auto result = options.parse(argc, argv);
+        const auto result = options.parse(argc, argv);
 
         if (result.count("help"))
         {
@@ -83,7 +83,7 @@ cxxopts::ParseResult parse(int argc, char* argv[])
 
         if (result.count("hash"))
         {
-            int size = result["hash"].as<int>();
+            const int size = result["hash"].as<int>();
             if (std::find(hash_sizes.begin(), hash_sizes.end(), size)
                 == hash_sizes.end())
             {

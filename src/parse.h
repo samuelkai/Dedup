@@ -5,7 +5,7 @@
 
 class EndException : public std::exception
 {
-       int _bad;
+       const int _bad;
 
     public:
         EndException(int bad);

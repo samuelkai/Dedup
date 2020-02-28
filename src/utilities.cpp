@@ -59,10 +59,10 @@ bool compare_files(const fs::path &path1, const fs::path &path2)
     do
     {
         f1.read((char*)input_buffer1, buffer_size);
-        auto count1 = f1.gcount();
+        const auto count1 = f1.gcount();
 
         f2.read((char*)input_buffer2, buffer_size);
-        auto count2 = f2.gcount();
+        const auto count2 = f2.gcount();
 
         if (count1 != count2 ||
             memcmp(input_buffer1, input_buffer2, count1))
@@ -89,12 +89,10 @@ uint64_t hash_file(const fs::path &path, uint64_t bytes)
         throw std::runtime_error("xxHash state creation error");
     }
 
-    size_t const buffer_size = 4096;
+    constexpr size_t buffer_size = 4096;
     char input_buffer[buffer_size];
 
-    /* Initialize state with selected seed */
-    unsigned long long const seed = 0;   /* or any other value */
-    XXH_errorcode const resetResult = XXH64_reset(state, seed);
+    const XXH_errorcode resetResult = XXH64_reset(state, 0);
     if (resetResult == XXH_ERROR) {
         XXH64_freeState(state);
         throw std::runtime_error("xxHash state initialization error");
@@ -105,8 +103,8 @@ uint64_t hash_file(const fs::path &path, uint64_t bytes)
         do
         {
             istream.read((char*)input_buffer, buffer_size);
-            auto count = istream.gcount();
-            XXH_errorcode const updateResult = XXH64_update(state,
+            const auto count = istream.gcount();
+            const XXH_errorcode updateResult = XXH64_update(state,
                                                             input_buffer, 
                                                             count);
             if (updateResult == XXH_ERROR) {
@@ -127,9 +125,9 @@ uint64_t hash_file(const fs::path &path, uint64_t bytes)
             else {
                 istream.read((char*)input_buffer, buffer_size);
             }
-            auto count = istream.gcount();
+            const auto count = istream.gcount();
             bytes_read += count;
-            XXH_errorcode const updateResult = XXH64_update(state,
+            const XXH_errorcode updateResult = XXH64_update(state,
                                                             input_buffer, 
                                                             count);
             if (updateResult == XXH_ERROR) {
@@ -140,7 +138,7 @@ uint64_t hash_file(const fs::path &path, uint64_t bytes)
     }
     
     /* Get the hash */
-    XXH64_hash_t const hash = XXH64_digest(state);
+    const XXH64_hash_t hash = XXH64_digest(state);
 
     XXH64_freeState(state);
     
@@ -149,13 +147,13 @@ uint64_t hash_file(const fs::path &path, uint64_t bytes)
 
 string format_bytes(uintmax_t bytes)
 {
-    vector<string> prefixes = {"", "kibi", "mebi", "gibi", "tebi", "pebi"};
+    const vector<string> prefixes = {"", "kibi", "mebi", "gibi", "tebi", "pebi"};
     size_t i = 0;
     double dbl_bytes = static_cast<double>(bytes);
     while (dbl_bytes > 1024 && i < prefixes.size())
     {
         dbl_bytes = dbl_bytes / 1024;
-        i++;
+        ++i;
     }
 
     std::ostringstream out;

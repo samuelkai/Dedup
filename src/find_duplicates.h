@@ -9,21 +9,6 @@
 #include <unordered_map>
 #include <vector>
 
-template <typename T>
-/**
- * Stores file paths and hashes of file contents.
- * The key is the hash of the beginning N bytes of a file,
- *  where N is a program argument.
- *  The key type T is one of {uint8_t, uint16_t, uint32_t, uint64_t}.
- * The value contains the paths of all files that produce the same hash.
- *  Because files can differ after the first N bytes, the outer vector contains
- *  inner vectors that contain files whose whole content is the same.
- */
-using DedupTable = std::unordered_map<T,std::vector
-                                        <std::vector
-                                        <std::filesystem::path>>>;
-
-
 /**
  * Calculates hash values of files and stores them
  * in the deduplication table.

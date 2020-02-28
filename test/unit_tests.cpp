@@ -18,7 +18,7 @@ namespace fs = std::filesystem;
 
 TEST_CASE( "simple" )
 {
-    fs::path test_dir_path = fs::temp_directory_path() / "dedup_test98437524";
+    const fs::path test_dir_path = fs::temp_directory_path() / "dedup_test98437524";
 
     fs::create_directory(test_dir_path);
     
@@ -31,14 +31,14 @@ TEST_CASE( "simple" )
 
     fs::resize_file(test_dir_path / "test3.txt", 100);
 
-    int argc = 2;
+    constexpr int argc = 2;
     char* argv[] = {const_cast<char *>("dedup"), const_cast<char *>("-s")};
 
-    auto result = parse(argc, argv);
+    const auto result = parse(argc, argv);
 
-    std::set<fs::path> paths_to_deduplicate = {test_dir_path};
+    const std::set<fs::path> paths_to_deduplicate = {test_dir_path};
 
-    auto duplicates = find_duplicates<uint64_t>(result, paths_to_deduplicate);
+    const auto duplicates = find_duplicates<uint64_t>(result, paths_to_deduplicate);
 
     fs::remove_all(test_dir_path);
 
@@ -47,7 +47,7 @@ TEST_CASE( "simple" )
 
 TEST_CASE( "simple2" )
 {
-    fs::path test_dir_path = fs::temp_directory_path() / "dedup_test98437524";
+    const fs::path test_dir_path = fs::temp_directory_path() / "dedup_test98437524";
 
     fs::remove_all(test_dir_path);
     fs::create_directory(test_dir_path);
@@ -63,14 +63,14 @@ TEST_CASE( "simple2" )
 
     fs::copy_file(test_dir_path / "test3.txt", test_dir_path / "test4.txt");
 
-    int argc = 2;
+    constexpr int argc = 2;
     char* argv[] = {const_cast<char *>("dedup"), const_cast<char *>("-s")};
 
-    auto result = parse(argc, argv);
+    const auto result = parse(argc, argv);
 
-    std::set<fs::path> paths_to_deduplicate = {test_dir_path};
+    const std::set<fs::path> paths_to_deduplicate = {test_dir_path};
 
-    auto duplicates = find_duplicates<uint64_t>(result, paths_to_deduplicate);
+    const auto duplicates = find_duplicates<uint64_t>(result, paths_to_deduplicate);
 
     fs::remove_all(test_dir_path);
 
