@@ -332,6 +332,7 @@ vector<vector<fs::path>> find_duplicates(const cxxopts::ParseResult &result,
         cout << "Counted " << total_count << " files occupying "
              << format_bytes(total_size) << "." << endl;
 
+        dedup_table.reserve(total_count);
 
         ProgressInsertOperation piop = ProgressInsertOperation<T>(dedup_table, 
         bytes, total_count, total_count / 20);
