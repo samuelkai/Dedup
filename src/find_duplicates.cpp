@@ -65,12 +65,7 @@ void insert_into_dedup_table(const fs::path &path, DedupTable<T> &dedup_table,
                              uint64_t bytes)
 {
     try
-    {
-        if (fs::is_empty(path))
-        {
-            return;
-        }
-        
+    {        
         // Truncate the hash to the specified length
         const auto hash = static_cast<T>(hash_file(path, bytes));
 
@@ -234,8 +229,8 @@ void traverse_directory_recursively(const fs::path &directory,
         // denied error 
         try
         {
-            if (fs::is_regular_file(
-                        fs::symlink_status(iter_path)))
+            if (fs::is_regular_file(fs::symlink_status(iter_path))
+                && !fs::is_empty(iter_path))
             {
                 handle_file_path<T>(*iter, op);
             }
@@ -269,7 +264,8 @@ void traverse_path(const fs::path &path, bool recurse, DirectoryOperation &op)
             for (; iter != end; ++iter)
             {
                 const fs::path iter_path(iter->path());
-                if (fs::is_regular_file(fs::symlink_status(iter_path)))
+                if (fs::is_regular_file(fs::symlink_status(iter_path))
+                    && !fs::is_empty(iter_path))
                 {
                     handle_file_path<T>(*iter, op);
                 }
