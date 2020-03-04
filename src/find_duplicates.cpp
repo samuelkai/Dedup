@@ -208,7 +208,8 @@ void draw_progress(ProgressInsertOperation<T> &op) {
 }
 
 template <typename T>
-inline void handle_file_path(const fs::directory_entry &path, DirectoryOperation &op)
+inline void handle_file_path(const fs::directory_entry &path, 
+    DirectoryOperation &op)
 {
     op.insert(path);
     if (op.has_progress())
@@ -218,42 +219,32 @@ inline void handle_file_path(const fs::directory_entry &path, DirectoryOperation
 }
 
 template <typename T>
-void traverse_directory_recursively(const fs::path &directory, DirectoryOperation &op)
+void traverse_directory_recursively(const fs::path &directory, 
+    DirectoryOperation &op)
 {    
-    fs::recursive_directory_iterator iter(directory);
+    fs::recursive_directory_iterator iter(directory, 
+        fs::directory_options::skip_permission_denied);
     const fs::recursive_directory_iterator end;
-    for (; iter != end; ++iter)
-    {
+    while (iter != end)
+    {    
         const fs::path iter_path(iter->path());
 
         // Check directory permissions before accessing it,
         // so the iterator won't be destroyed on access
         // denied error 
-        if (fs::is_directory(iter_path))
+        try
         {
-            try
+            if (fs::is_regular_file(
+                        fs::symlink_status(iter_path)))
             {
-                const fs::path path_before_change = fs::current_path();
-                // Try to cd to the directory
-                // so its files can be accessed
-                fs::current_path(iter_path);
-                fs::current_path(path_before_change);
-                // Try to read the file list 
-                // of the directory
-                const fs::directory_iterator read_chk(iter_path);
-            }
-            catch(const std::exception& e)
-            {
-                cerr << "Cannot access directory " 
-                        << iter_path << "\n";
-                iter.disable_recursion_pending();
+                handle_file_path<T>(*iter, op);
             }
         }
-        else if (fs::is_regular_file(
-                    fs::symlink_status(iter_path)))
+        catch(const std::exception& e)
         {
-            handle_file_path<T>(*iter, op);
+            std::cerr << "Error opening file: " << iter_path.string() << '\n';
         }
+        ++iter;        
     }
 }
 
