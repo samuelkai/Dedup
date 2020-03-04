@@ -19,7 +19,7 @@
  * (recursively or not, depending on the argument) will be calculated.
  */
 template <typename T>
-std::vector<std::vector<std::filesystem::path>> find_duplicates(
+std::vector<std::vector<std::string>> find_duplicates(
     const cxxopts::ParseResult &result, 
     const std::set<std::filesystem::path> &paths_to_deduplicate);
 

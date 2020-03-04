@@ -25,17 +25,15 @@ namespace fs = std::filesystem;
 // Because files can differ after the first N bytes, the outer vector contains
 // inner vectors that contain files whose whole content is the same.
 template <typename T>
-using DedupTable = std::unordered_map<T,std::vector
-                                        <std::vector
-                                        <std::filesystem::path>>>;
+using DedupTable = std::unordered_map<T, vector<vector<string>>>;
 
 /**
  * Checks the given vector of duplicate file vectors for a file that has the
  * same content as the file in the given path. If found, inserts the path
  * to the duplicate file vector and returns true.
  */ 
-bool find_duplicate_file(const fs::path &path,
-                         vector<vector<fs::path>> &vec_vec)
+bool find_duplicate_file(const string &path,
+                         vector<vector<string>> &vec_vec)
 {
     // vec_vec contains files that have the same hash
     // dup_vec contains files whose whole content is the same
@@ -61,7 +59,7 @@ bool find_duplicate_file(const fs::path &path,
  * Inserts the given path into the deduplication table.
  */
 template <typename T>
-void insert_into_dedup_table(const fs::path &path, DedupTable<T> &dedup_table,
+void insert_into_dedup_table(const string &path, DedupTable<T> &dedup_table,
                              uint64_t bytes)
 {
     try
@@ -72,7 +70,7 @@ void insert_into_dedup_table(const fs::path &path, DedupTable<T> &dedup_table,
         if (dedup_table[hash].empty()) // First file that produces this hash
         {
             dedup_table[hash].push_back(
-                vector<fs::path>{path});
+                vector<string>{path});
         }
         else
         {
@@ -81,7 +79,7 @@ void insert_into_dedup_table(const fs::path &path, DedupTable<T> &dedup_table,
             {
                 // File differs from others with the same hash
                 dedup_table[hash].push_back(
-                    vector<fs::path>{path});
+                    vector<string>{path});
             }
         }
     }
@@ -122,9 +120,9 @@ class InsertOperation : public DirectoryOperation {
             : DirectoryOperation(p), dedup_table(d), bytes(b), 
               current_count(0) {}
 
-        void insert_into_own_dedup_table(const fs::directory_entry &entry)
+        void insert_into_own_dedup_table(const string &path)
         {
-            insert_into_dedup_table(entry, dedup_table, bytes);
+            insert_into_dedup_table(path, dedup_table, bytes);
             ++current_count;
         }
 
@@ -140,7 +138,7 @@ class NoProgressInsertOperation : public InsertOperation<T> {
 
         void insert(const fs::directory_entry &entry) final override
         {
-            InsertOperation<T>::insert_into_own_dedup_table(entry);
+            InsertOperation<T>::insert_into_own_dedup_table(entry.path().string());
             current_size += entry.file_size();
         }
 
@@ -159,7 +157,7 @@ class ProgressInsertOperation : public InsertOperation<T> {
 
         void insert(const fs::directory_entry &entry) final override
         {
-            InsertOperation<T>::insert_into_own_dedup_table(entry);
+            InsertOperation<T>::insert_into_own_dedup_table(entry.path().string());
         }
 
         size_t get_total_count() const {return total_count;}
@@ -295,7 +293,7 @@ void traverse_path(const fs::path &path, bool recurse, DirectoryOperation &op)
  * Returns a vector whose elements are vectors of duplicate files.
  */
 template <typename T>
-vector<vector<fs::path>> find_duplicates(const cxxopts::ParseResult &result, 
+vector<vector<string>> find_duplicates(const cxxopts::ParseResult &result, 
     const std::set<fs::path> &paths_to_deduplicate)
 {
     DedupTable<T> dedup_table;
@@ -366,7 +364,7 @@ vector<vector<fs::path>> find_duplicates(const cxxopts::ParseResult &result,
     }
         
     // Includes vectors of files whose whole content is the same
-    vector<vector<fs::path>> duplicates;
+    vector<vector<string>> duplicates;
 
     for (const auto &pair : dedup_table)
     {
@@ -382,15 +380,15 @@ vector<vector<fs::path>> find_duplicates(const cxxopts::ParseResult &result,
     return duplicates;
 }
 
-template vector<vector<fs::path>> find_duplicates<uint8_t>(
+template vector<vector<string>> find_duplicates<uint8_t>(
     const cxxopts::ParseResult &result, 
     const std::set<fs::path> &paths_to_deduplicate);
-template vector<vector<fs::path>> find_duplicates<uint16_t>(
+template vector<vector<string>> find_duplicates<uint16_t>(
     const cxxopts::ParseResult &result, 
     const std::set<fs::path> &paths_to_deduplicate);
-template vector<vector<fs::path>> find_duplicates<uint32_t>(
+template vector<vector<string>> find_duplicates<uint32_t>(
     const cxxopts::ParseResult &result, 
     const std::set<fs::path> &paths_to_deduplicate);
-template vector<vector<fs::path>> find_duplicates<uint64_t>(
+template vector<vector<string>> find_duplicates<uint64_t>(
     const cxxopts::ParseResult &result, 
     const std::set<fs::path> &paths_to_deduplicate);

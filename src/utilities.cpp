@@ -25,7 +25,7 @@ FileException::FileException(fs::path path) :
  * Returns true if the contents of the files in the given paths are exactly
  * the same.
  */
-bool compare_files(const fs::path &path1, const fs::path &path2)
+bool compare_files(const string &path1, const string &path2)
 {
     // Open with position indicator at end
     std::ifstream f1(path1, std::ios::binary|std::ifstream::ate);
@@ -78,7 +78,7 @@ bool compare_files(const fs::path &path1, const fs::path &path2)
  * path. Parameter "bytes" specifies the number of bytes that are considered.
  * If bytes == 0, the whole file is hashed.
  */
-uint64_t hash_file(const fs::path &path, uint64_t bytes)
+uint64_t hash_file(const string &path, uint64_t bytes)
 {
     std::ifstream istream(path, std::ios::binary);
 

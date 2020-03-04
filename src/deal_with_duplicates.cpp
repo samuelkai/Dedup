@@ -19,9 +19,9 @@ namespace fs = std::filesystem;
 /**
  * Returns true if the given string is a positive integer.
  */
-bool is_positive_integer(const std::string& s)
+bool is_positive_integer(const string& s)
 {
-    std::string::const_iterator it = s.begin();
+    string::const_iterator it = s.begin();
     while (it != s.end() && std::isdigit(*it)) ++it;
     return !s.empty() && it == s.end();
 }
@@ -30,7 +30,7 @@ bool is_positive_integer(const std::string& s)
  * Asks the user to select on the command line which files are kept 
  * in each set of duplicates.
  */
-void prompt_duplicate_deletions(const vector<vector<fs::path>> &duplicates)
+void prompt_duplicate_deletions(const vector<vector<string>> &duplicates)
 {
     cout << endl;
     // For each set of duplicates
@@ -38,7 +38,7 @@ void prompt_duplicate_deletions(const vector<vector<fs::path>> &duplicates)
     {
         for (size_t i = 1; i <= dup_vec.size(); ++i)
         {
-            cout << "[" << i << "] " << dup_vec[i-1].string() << "\n";
+            cout << "[" << i << "] " << dup_vec[i-1] << "\n";
         }
         cout << endl;
 
@@ -117,7 +117,7 @@ void prompt_duplicate_deletions(const vector<vector<fs::path>> &duplicates)
  * List, summarize or prompt for deletion.
  */
 void deal_with_duplicates(const cxxopts::ParseResult &result, 
-                          const vector<vector<fs::path>> &duplicates)
+                          const vector<vector<string>> &duplicates)
 {
     const bool list = result["list"].as<bool>();
     const bool summarize = result["summarize"].as<bool>();
@@ -150,7 +150,7 @@ void deal_with_duplicates(const cxxopts::ParseResult &result,
         {
             for (size_t i = 0; i < dup_vec.size(); ++i)
             {
-                cout << dup_vec[i].string() << "\n";
+                cout << dup_vec[i] << "\n";
             }
             cout << endl;
         }
