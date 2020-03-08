@@ -7,10 +7,10 @@
 /**
  * Exception that compare_files throws when it can't open a file.
  */
-class FileException : public std::runtime_error
+class FileException : public std::system_error
 {
     public:
-        FileException(std::filesystem::path path);
+        FileException(std::error_code ec);
 };
 
 /**

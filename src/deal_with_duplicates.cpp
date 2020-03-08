@@ -38,7 +38,7 @@ void prompt_duplicate_deletions(const vector<vector<string>> &duplicates)
     {
         for (size_t i = 1; i <= dup_vec.size(); ++i)
         {
-            cout << "[" << i << "] " << dup_vec[i-1] << "\n";
+            cout << "[" << i << "] " << dup_vec[i-1] << '\n';
         }
         cout << endl;
 
@@ -53,16 +53,16 @@ void prompt_duplicate_deletions(const vector<vector<string>> &duplicates)
             {
                 try
                 {
-                    const unsigned int kept = std::stoi(input);
+                    const auto kept = std::stoull(input);
                     // Given number must specify one of the duplicates
                     if (kept <= dup_vec.size())
                     {
+                        valid_input = true;
                         for (size_t i = 1; i <= dup_vec.size(); ++i)
                         {
                             // Remove all others
                             if (i != kept)
                             {
-                                valid_input = true;
                                 try
                                 {
                                     if (!fs::remove(dup_vec[i-1]))
@@ -80,8 +80,12 @@ void prompt_duplicate_deletions(const vector<vector<string>> &duplicates)
                         }
                     }
                 }
-                catch(const std::out_of_range& e)
+                catch(const std::out_of_range &e)
                 {
+                }
+                catch(const std::exception &e)
+                {
+                    std::cerr << e.what() << '\n';
                 }
             }
             else if (input == "n" || input == "none") // Remove all

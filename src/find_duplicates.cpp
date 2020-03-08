@@ -47,8 +47,9 @@ bool find_duplicate_file(const string &path,
                 return true;
             }             
         }
-        catch(const FileException& e)
+        catch(const FileException &e)
         {
+            // By catching here we can compare to the other elements of dup_vec
             std::cerr << e.what() << '\n';
         }                           
     }
@@ -61,9 +62,7 @@ bool find_duplicate_file(const string &path,
 template <typename T>
 void insert_into_dedup_table(const string &path, DedupTable<T> &dedup_table,
                              uint64_t bytes)
-{
-    try
-    {        
+{   
         // Truncate the hash to the specified length
         const auto hash = static_cast<T>(hash_file(path, bytes));
 
@@ -82,11 +81,6 @@ void insert_into_dedup_table(const string &path, DedupTable<T> &dedup_table,
                     vector<string>{path});
             }
         }
-    }
-    catch(const std::exception& e)
-    {
-        cerr << e.what() << ": file " << path << '\n';
-    }
 }
 
 class DirectoryOperation {
@@ -214,7 +208,7 @@ inline void handle_file_path(const fs::directory_entry &path,
 template <typename T>
 void traverse_directory_recursively(const fs::path &directory, 
     DirectoryOperation &op)
-{    
+{
     fs::recursive_directory_iterator iter(directory, 
         fs::directory_options::skip_permission_denied);
     const fs::recursive_directory_iterator end;
@@ -222,9 +216,6 @@ void traverse_directory_recursively(const fs::path &directory,
     {    
         const fs::path iter_path(iter->path());
 
-        // Check directory permissions before accessing it,
-        // so the iterator won't be destroyed on access
-        // denied error 
         try
         {
             if (fs::is_regular_file(fs::symlink_status(iter_path))
@@ -233,9 +224,14 @@ void traverse_directory_recursively(const fs::path &directory,
                 handle_file_path<T>(*iter, op);
             }
         }
-        catch(const std::exception& e)
+        catch(const fs::filesystem_error &e)
         {
-            std::cerr << "Error opening file: " << iter_path.string() << '\n';
+            std::cerr << e.what() << '\n';
+        }
+        catch(const std::runtime_error &e)
+        {
+            std::cerr << e.what() << " ["
+                << iter_path.string() << "]\n";
         }
         ++iter;        
     }
@@ -248,7 +244,7 @@ void traverse_directory_recursively(const fs::path &directory,
  */
 template <typename T>
 void traverse_path(const fs::path &path, bool recurse, DirectoryOperation &op)
-{            
+{
     if (fs::is_directory(path))
     {
         if (recurse)
@@ -257,15 +253,29 @@ void traverse_path(const fs::path &path, bool recurse, DirectoryOperation &op)
         }
         else
         {
-            fs::directory_iterator iter(path);                    
-            const fs::directory_iterator end; 
+            fs::directory_iterator iter(path, 
+                fs::directory_options::skip_permission_denied);
+            const fs::directory_iterator end;
             for (; iter != end; ++iter)
             {
                 const fs::path iter_path(iter->path());
-                if (fs::is_regular_file(fs::symlink_status(iter_path))
-                    && !fs::is_empty(iter_path))
+
+                try
                 {
-                    handle_file_path<T>(*iter, op);
+                    if (fs::is_regular_file(fs::symlink_status(iter_path))
+                        && !fs::is_empty(iter_path))
+                    {
+                        handle_file_path<T>(*iter, op);
+                    }
+                }
+                catch(const fs::filesystem_error &e)
+                {
+                    std::cerr << e.what() << '\n';
+                }
+                catch(const std::runtime_error &e)
+                {
+                    std::cerr << e.what() << " ["
+                        << iter_path.string() << "]\n";
                 }
             }
         }
@@ -309,7 +319,15 @@ vector<vector<string>> find_duplicates(const cxxopts::ParseResult &result,
         
         for (const auto &path : paths_to_deduplicate)
         {
-            traverse_path<T>(path, recurse, cop);
+            try
+            {
+                traverse_path<T>(path, recurse, cop);
+            }
+            catch(const std::exception &e)
+            {
+                cerr << e.what() << '\n';
+            }
+            
         }
         
         const size_t total_count = cop.get_count();
@@ -331,7 +349,7 @@ vector<vector<string>> find_duplicates(const cxxopts::ParseResult &result,
             }
             catch (const std::exception &e)
             {
-                cerr << e.what() << "\n\n";
+                cerr << e.what() << '\n';
             }
         }
         cout << "\r" << "Done checking " << total_count 
@@ -352,7 +370,7 @@ vector<vector<string>> find_duplicates(const cxxopts::ParseResult &result,
             }
             catch (const std::exception &e)
             {
-                cerr << e.what() << "\n\n";
+                cerr << e.what() << '\n';
             }
         }
 

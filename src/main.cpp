@@ -40,9 +40,13 @@ int main(int argc, char *argv[])
                         cout << path << " does not exist\n\n";
                     }
                 }
-                catch(const std::exception& e)
+                catch(const fs::filesystem_error &e)
                 {
-                    cerr << "Error opening file: " << e.what() << '\n';
+                    cerr << e.what() << '\n';
+                }
+                catch(const std::exception &e)
+                {
+                    cerr << e.what() << '\n';
                 }
             }
         }
@@ -50,7 +54,13 @@ int main(int argc, char *argv[])
         {
             cout << "Usage: " << argv[0] << " path1 [path2] [path3]..." 
                  << endl;
-            return 0;
+            return 1;
+        }
+
+        if (paths_to_deduplicate.empty())
+        {
+            cerr << "No paths to deduplicate.\n";
+            return 1;
         }
         
         const int hash_size = result["hash"].as<int>();
@@ -80,12 +90,12 @@ int main(int argc, char *argv[])
     }
     catch(const std::exception &e)
     {
-        std::cerr << e.what() << '\n';
+        cerr << e.what() << '\n';
         return 1;
     }
     catch(...)
     {
-        std::cerr << "Unknown exception. Terminating program." << '\n';
+        cerr << "Unknown exception. Terminating program." << '\n';
         return 1;
     }
 

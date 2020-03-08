@@ -14,10 +14,10 @@ using std::vector;
 namespace fs = std::filesystem;
 
 /**
- * Exception that compare_files throws when it can't open a file.
+ * Exception that is thrown when file stream is not valid.
  */
-FileException::FileException(fs::path path) :
-    std::runtime_error("Error opening file: " + path.string())
+FileException::FileException(std::error_code ec) :
+    std::system_error(ec)
 {
 }
 
@@ -27,49 +27,56 @@ FileException::FileException(fs::path path) :
  */
 bool compare_files(const string &path1, const string &path2)
 {
-    // Open with position indicator at end
-    std::ifstream f1(path1, std::ios::binary|std::ifstream::ate);
-    std::ifstream f2(path2, std::ios::binary|std::ifstream::ate);
-
-
-    if (f1.fail()) //file problem
+    std::ifstream f1;
+    std::ifstream f2;
+    try
     {
-        throw FileException(path1);
-    }
-
-    if (f2.fail()) //file problem
-    {
-        throw FileException(path2);
-    }
-
-    if (f1.tellg() != f2.tellg()) //size mismatch
-    {
-        return false;
-    }
-
-    //seek back to beginning
-    f1.seekg(0, std::ifstream::beg);
-    f2.seekg(0, std::ifstream::beg);
-
-    constexpr size_t buffer_size = 4096;
-    char input_buffer1[buffer_size];
-    char input_buffer2[buffer_size];
-    
-    // Compare files a buffer size at a time
-    do
-    {
-        f1.read((char*)input_buffer1, buffer_size);
-        const auto count1 = f1.gcount();
-
-        f2.read((char*)input_buffer2, buffer_size);
-        const auto count2 = f2.gcount();
-
-        if (count1 != count2 ||
-            memcmp(input_buffer1, input_buffer2, count1))
+        // Open with position indicator at end
+        f1.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+        f1.open(path1, std::ios::binary|std::ifstream::in|std::ifstream::ate);
+        
+        f2.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+        f2.open(path2, std::ios::binary|std::ifstream::in|std::ifstream::ate);
+        
+        // The streams were opened in binary mode and with the position 
+        // indicator at the end, so tellg() returns the file size
+        if (f1.tellg() != f2.tellg()) //size mismatch
         {
-            return false; // Files are not equal
+            return false;
         }
-    } while (f1 && f2);
+
+        //seek back to beginning
+        f1.seekg(0, std::ifstream::beg);
+        f2.seekg(0, std::ifstream::beg);
+
+        constexpr size_t buffer_size = 4096;
+        char input_buffer1[buffer_size];
+        char input_buffer2[buffer_size];
+        
+        // Compare files a buffer size at a time
+        do
+        {
+            f1.read((char*)input_buffer1, buffer_size);
+            const auto count1 = f1.gcount();
+
+            f2.read((char*)input_buffer2, buffer_size);
+            const auto count2 = f2.gcount();
+
+            if (count1 != count2 ||
+                memcmp(input_buffer1, input_buffer2, count1))
+            {
+                return false; // Files are not equal
+            }
+        } while (f1 && f2);
+    }
+    catch(const std::ios_base::failure &e)
+    {
+        if (!f1.eof())
+        {
+            throw FileException(e.code());
+        }
+    }
+
     return true;
 }
 
@@ -80,7 +87,19 @@ bool compare_files(const string &path1, const string &path2)
  */
 uint64_t hash_file(const string &path, uint64_t bytes)
 {
-    std::ifstream istream(path, std::ios::binary);
+    std::ifstream istream;
+    istream.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+    try
+    {
+        istream.open(path, std::ios::binary|std::ifstream::in);
+    }
+    catch(const std::ios_base::failure &e)
+    {
+        if (!istream.eof())
+        {
+            throw std::runtime_error(strerror(errno));
+        }
+    }
 
     // Based on example code from xxHash
     XXH64_state_t* const state = XXH64_createState();
@@ -102,7 +121,17 @@ uint64_t hash_file(const string &path, uint64_t bytes)
     {
         do
         {
-            istream.read((char*)input_buffer, buffer_size);
+            try
+            {
+                istream.read((char*)input_buffer, buffer_size);
+            }
+            catch(const std::ios_base::failure &e)
+            {
+                if (!istream.eof())
+                {
+                    throw std::runtime_error(strerror(errno));
+                }
+            }
             const auto count = istream.gcount();
             const XXH_errorcode updateResult = XXH64_update(state,
                                                             input_buffer, 
@@ -118,12 +147,22 @@ uint64_t hash_file(const string &path, uint64_t bytes)
         uint64_t bytes_read = 0;
         do
         {
-            if (bytes < buffer_size)
+            try
             {
-                istream.read((char*)input_buffer, bytes);    
+                if (bytes < buffer_size)
+                {
+                    istream.read((char*)input_buffer, bytes);    
+                }
+                else {
+                    istream.read((char*)input_buffer, buffer_size);
+                }
             }
-            else {
-                istream.read((char*)input_buffer, buffer_size);
+            catch(const std::ios_base::failure &e)
+            {
+                if (!istream.eof())
+                {
+                    throw std::runtime_error(strerror(errno));
+                }
             }
             const auto count = istream.gcount();
             bytes_read += count;
@@ -147,7 +186,8 @@ uint64_t hash_file(const string &path, uint64_t bytes)
 
 string format_bytes(uintmax_t bytes)
 {
-    const vector<string> prefixes = {"", "kibi", "mebi", "gibi", "tebi", "pebi"};
+    const vector<string> prefixes = 
+        {"", "kibi", "mebi", "gibi", "tebi", "pebi"};
     size_t i = 0;
     double dbl_bytes = static_cast<double>(bytes);
     while (dbl_bytes > 1024 && i < prefixes.size())
