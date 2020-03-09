@@ -31,51 +31,56 @@ bool compare_files(const string &path1, const string &path2)
     std::ifstream f2;
     try
     {
-        // Open with position indicator at end
         f1.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-        f1.open(path1, std::ios::binary|std::ifstream::in|std::ifstream::ate);
+        f1.open(path1, std::ios::binary|std::ifstream::in);
         
         f2.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-        f2.open(path2, std::ios::binary|std::ifstream::in|std::ifstream::ate);
-        
-        // The streams were opened in binary mode and with the position 
-        // indicator at the end, so tellg() returns the file size
-        if (f1.tellg() != f2.tellg()) //size mismatch
-        {
-            return false;
-        }
-
-        //seek back to beginning
-        f1.seekg(0, std::ifstream::beg);
-        f2.seekg(0, std::ifstream::beg);
-
-        constexpr size_t buffer_size = 4096;
-        char input_buffer1[buffer_size];
-        char input_buffer2[buffer_size];
-        
-        // Compare files a buffer size at a time
-        do
-        {
-            f1.read((char*)input_buffer1, buffer_size);
-            const auto count1 = f1.gcount();
-
-            f2.read((char*)input_buffer2, buffer_size);
-            const auto count2 = f2.gcount();
-
-            if (count1 != count2 ||
-                memcmp(input_buffer1, input_buffer2, count1))
-            {
-                return false; // Files are not equal
-            }
-        } while (f1 && f2);
+        f2.open(path2, std::ios::binary|std::ifstream::in);
     }
     catch(const std::ios_base::failure &e)
     {
-        if (!f1.eof())
-        {
-            throw FileException(e.code());
-        }
+        throw FileException(e.code());
     }
+    constexpr size_t buffer_size = 4096;
+    char input_buffer1[buffer_size];
+    char input_buffer2[buffer_size];
+    
+    // Compare files a buffer size at a time
+    do
+    {
+        try
+        {
+            f1.read((char*)input_buffer1, buffer_size);
+        }
+        catch(const std::ios_base::failure &e)
+        {
+            if (!f1.eof())
+            {
+                throw FileException(e.code());
+            }
+        }
+        const auto count1 = f1.gcount();
+
+        try
+        {
+            f2.read((char*)input_buffer2, buffer_size);
+        }
+        catch(const std::ios_base::failure &e)
+        {
+            if (!f2.eof())
+            {
+                throw FileException(e.code());
+            }
+        }
+        
+        const auto count2 = f2.gcount();
+
+        if (count1 != count2 ||
+            memcmp(input_buffer1, input_buffer2, count1))
+        {
+            return false; // Files are not equal
+        }
+    } while (f1 && f2);
 
     return true;
 }

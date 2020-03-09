@@ -58,9 +58,6 @@ cxxopts::ParseResult parse(int argc, char* argv[])
                 "are used in hash calculation. "
                 "0 means that the whole file is hashed.",
                 cxxopts::value<uint64_t>()->default_value("4096"), "N")
-            ("c,skip-count", "Skip initial file counting. Speeds up the "
-                "process but disables the progress bar.",
-                cxxopts::value<bool>()->default_value("false"))
             ("h,help", "Print this help")
             ("l,list", "List found duplicates, don't prompt for deduplication", 
                 cxxopts::value<bool>()->default_value("false"))

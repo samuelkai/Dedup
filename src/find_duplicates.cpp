@@ -25,7 +25,18 @@ namespace fs = std::filesystem;
 // Because files can differ after the first N bytes, the outer vector contains
 // inner vectors that contain files whose whole content is the same.
 template <typename T>
-using DedupTable = std::unordered_map<T, vector<vector<string>>>;
+using DedupTable = std::unordered_map<
+    uintmax_t,
+    std::unordered_map<
+        T,
+        vector<
+            vector<
+                string>
+            >
+        > 
+    >;
+
+using FileSizeTable = std::unordered_map<uintmax_t, vector<string>>;
 
 /**
  * Checks the given vector of duplicate file vectors for a file that has the
@@ -45,7 +56,7 @@ bool find_duplicate_file(const string &path,
             {
                 dup_vec.push_back(path);
                 return true;
-            }             
+            }
         }
         catch(const FileException &e)
         {
@@ -60,115 +71,88 @@ bool find_duplicate_file(const string &path,
  * Inserts the given path into the deduplication table.
  */
 template <typename T>
-void insert_into_dedup_table(const string &path, DedupTable<T> &dedup_table,
-                             uint64_t bytes)
+void insert_into_dedup_table(const string &path, uintmax_t size,
+                             DedupTable<T> &dedup_table, uint64_t bytes)
 {   
         // Truncate the hash to the specified length
         const auto hash = static_cast<T>(hash_file(path, bytes));
 
-        if (dedup_table[hash].empty()) // First file that produces this hash
+        if (dedup_table[size][hash].empty()) // First file that produces this hash
         {
-            dedup_table[hash].push_back(
+            dedup_table[size][hash].push_back(
                 vector<string>{path});
         }
         else
         {
             if (!find_duplicate_file(
-                path, dedup_table[hash]))
+                path, dedup_table[size][hash]))
             {
                 // File differs from others with the same hash
-                dedup_table[hash].push_back(
+                dedup_table[size][hash].push_back(
                     vector<string>{path});
             }
         }
 }
 
-class DirectoryOperation {
-        const bool b_has_progress;
-    protected:
-    //  Prevents slicing: https://stackoverflow.com/questions/49961811/must-a-c-interface-obey-the-rule-of-five
-        DirectoryOperation(const DirectoryOperation&) = default;
-        DirectoryOperation(DirectoryOperation&&) = default;
-        DirectoryOperation& operator=(const DirectoryOperation&) = default;
-        DirectoryOperation& operator=(DirectoryOperation&&) = default;
-    public:
-        DirectoryOperation(bool p)
-            : b_has_progress(p) {}        
-
-        virtual void insert(const fs::directory_entry&) = 0;
-        bool has_progress() const
-        {
-            return b_has_progress;
-        }
-
-        virtual ~DirectoryOperation() = default;
-};
-
 template <typename T>
-class InsertOperation : public DirectoryOperation {
+class InsertOperation {
         DedupTable<T> &dedup_table;
         const uint64_t bytes;
         size_t current_count;
+        const size_t total_count;
+        const size_t step_size;
+    
     public:
-        InsertOperation(DedupTable<T> &d, uint64_t b, bool p)
-            : DirectoryOperation(p), dedup_table(d), bytes(b), 
-              current_count(0) {}
+        InsertOperation(DedupTable<T> &d, uint64_t b, size_t t_c, size_t s_s)
+            : dedup_table(d), bytes(b), current_count(0), total_count(t_c), 
+              step_size( s_s == 0 ? 1 : s_s ) {}; // Prevent zero step size
 
-        void insert_into_own_dedup_table(const string &path)
+        void insert(const string &path, uintmax_t size)
         {
-            insert_into_dedup_table(path, dedup_table, bytes);
+            insert_into_dedup_table(path, size, dedup_table, bytes);
             ++current_count;
         }
 
         size_t get_current_count() const {return current_count;}
-};
-
-template <typename T>
-class NoProgressInsertOperation : public InsertOperation<T> {
-        uintmax_t current_size;
-    public:
-        NoProgressInsertOperation(DedupTable<T> &d, uint64_t b)
-            : InsertOperation<T>(d, b, false), current_size(0) {}
-
-        void insert(const fs::directory_entry &entry) final override
-        {
-            InsertOperation<T>::insert_into_own_dedup_table(entry.path().string());
-            current_size += entry.file_size();
-        }
-
-        size_t get_current_size() const {return current_size;}
-};
-
-template <typename T>
-class ProgressInsertOperation : public InsertOperation<T> {
-        const size_t total_count;
-        const size_t step_size;
-    public:
-        ProgressInsertOperation(DedupTable<T> &d, uint64_t b, size_t t_c, 
-            size_t s)
-            : InsertOperation<T>(d, b, true), total_count(t_c), 
-              step_size( s == 0 ? 1 : s ) {}; // Prevent zero step size
-
-        void insert(const fs::directory_entry &entry) final override
-        {
-            InsertOperation<T>::insert_into_own_dedup_table(entry.path().string());
-        }
-
         size_t get_total_count() const {return total_count;}
         size_t get_step_size() const {return step_size;}
 };
 
-class CountOperation : public DirectoryOperation {
+class CountOperation {
         size_t count;
         uintmax_t size;
+        FileSizeTable &file_size_table;
     public:
-        CountOperation()
-            : DirectoryOperation(false), count(0), size(0) {};
+        CountOperation(FileSizeTable &f)
+            : count(0), size(0), file_size_table(f)
+             {};
 
-        void insert(const fs::directory_entry &entry) final override
+        void insert(const fs::directory_entry &entry)
         {
-            ++count;
-            size += entry.file_size();
+            try
+            {
+                if (fs::is_regular_file(fs::symlink_status(entry.path()))
+                    && !fs::is_empty(entry.path()))
+                {
+                    ++count;
+                    size += entry.file_size();
+                    file_size_table[entry.file_size()]
+                        .push_back(entry.path().string());
+                }
+            }
+            catch(const fs::filesystem_error &e)
+            {
+                std::cerr << e.what() << '\n';
+            }
+            catch(const std::runtime_error &e)
+            {
+                std::cerr << e.what() << " ["
+                    << entry.path().string() << "]\n";
+            }
+            catch(const std::exception& e)
+            {
+                std::cerr << e.what() << '\n';
+            }
         }
 
         size_t get_count() const {return count;}
@@ -179,7 +163,7 @@ class CountOperation : public DirectoryOperation {
  * Draws a bar on the terminal showing the progress on finding duplicates.
  */
 template <typename T>
-void draw_progress(ProgressInsertOperation<T> &op) {
+void draw_progress(InsertOperation<T> &op) {
     const size_t curr_f_cnt = op.get_current_count();
     const size_t tot_f_cnt = op.get_total_count();
     const size_t step_size = op.get_step_size();
@@ -194,100 +178,36 @@ void draw_progress(ProgressInsertOperation<T> &op) {
     }
 }
 
-template <typename T>
-inline void handle_file_path(const fs::directory_entry &path, 
-    DirectoryOperation &op)
-{
-    op.insert(path);
-    if (op.has_progress())
-    {
-        draw_progress(static_cast<ProgressInsertOperation<T>&>(op));
-    }
-}
-
-template <typename T>
-void traverse_directory_recursively(const fs::path &directory, 
-    DirectoryOperation &op)
-{
-    fs::recursive_directory_iterator iter(directory, 
-        fs::directory_options::skip_permission_denied);
-    const fs::recursive_directory_iterator end;
-    while (iter != end)
-    {    
-        const fs::path iter_path(iter->path());
-
-        try
-        {
-            if (fs::is_regular_file(fs::symlink_status(iter_path))
-                && !fs::is_empty(iter_path))
-            {
-                handle_file_path<T>(*iter, op);
-            }
-        }
-        catch(const fs::filesystem_error &e)
-        {
-            std::cerr << e.what() << '\n';
-        }
-        catch(const std::runtime_error &e)
-        {
-            std::cerr << e.what() << " ["
-                << iter_path.string() << "]\n";
-        }
-        ++iter;        
-    }
-}
-
 /**
  * Traverses the given path for files, which are then checked for duplicates.
  * Only regular files are checked.
  * Directories are traversed recursively if wanted.
  */
 template <typename T>
-void traverse_path(const fs::path &path, bool recurse, DirectoryOperation &op)
+void traverse_path(const fs::path &path, bool recurse, CountOperation &op)
 {
     if (fs::is_directory(path))
     {
         if (recurse)
-        {
-            traverse_directory_recursively<T>(path, op);
+        {            
+            for (const auto &p : fs::recursive_directory_iterator(path, 
+                fs::directory_options::skip_permission_denied))
+            {
+                op.insert(p);
+            }
         }
         else
         {
-            fs::directory_iterator iter(path, 
-                fs::directory_options::skip_permission_denied);
-            const fs::directory_iterator end;
-            for (; iter != end; ++iter)
+            for (const auto &p : fs::directory_iterator(path, 
+                fs::directory_options::skip_permission_denied))
             {
-                const fs::path iter_path(iter->path());
-
-                try
-                {
-                    if (fs::is_regular_file(fs::symlink_status(iter_path))
-                        && !fs::is_empty(iter_path))
-                    {
-                        handle_file_path<T>(*iter, op);
-                    }
-                }
-                catch(const fs::filesystem_error &e)
-                {
-                    std::cerr << e.what() << '\n';
-                }
-                catch(const std::runtime_error &e)
-                {
-                    std::cerr << e.what() << " ["
-                        << iter_path.string() << "]\n";
-                }
+                op.insert(p);
             }
         }
     }
-    else if (fs::is_regular_file(fs::symlink_status(path)))
+    else
     {
-        handle_file_path<T>(fs::directory_entry(path), op);
-    }
-    else // not a regular file or directory
-    {
-        cout << path << " exists, but is not a regular file "
-                        "or directory\n\n";
+        op.insert(fs::directory_entry(path));
     }
 }
 
@@ -310,87 +230,103 @@ vector<vector<string>> find_duplicates(const cxxopts::ParseResult &result,
 
     const uint64_t bytes = result["bytes"].as<uint64_t>();
     const bool recurse = result["recurse"].as<bool>();
-    const bool skip_count = result["skip-count"].as<bool>();
-
-    if (!skip_count)
+    
+    FileSizeTable file_size_table;
+    cout << "Counting number and size of files in given paths..." << endl;
+    CountOperation cop = CountOperation(file_size_table);
+    
+    for (const auto &path : paths_to_deduplicate)
     {
-        cout << "Counting number and size of files in given paths..." << endl;
-        CountOperation cop = CountOperation();
-        
-        for (const auto &path : paths_to_deduplicate)
+        try
         {
-            try
-            {
-                traverse_path<T>(path, recurse, cop);
-            }
-            catch(const std::exception &e)
-            {
-                cerr << e.what() << '\n';
-            }
-            
+            traverse_path<T>(path, recurse, cop);
+        }
+        catch(const std::exception &e)
+        {
+            cerr << e.what() << '\n';
         }
         
-        const size_t total_count = cop.get_count();
-        const uintmax_t total_size = cop.get_size();
-        cout << "Counted " << total_count << " files occupying "
-             << format_bytes(total_size) << "." << endl;
+    }
+    
+    const size_t total_count = cop.get_count();
+    const uintmax_t total_size = cop.get_size();
+    cout << "Counted " << total_count << " files occupying "
+            << format_bytes(total_size) << "." << endl;
 
-        dedup_table.reserve(total_count);
+    {
+        FileSizeTable::iterator iter = file_size_table.begin();
+        FileSizeTable::iterator end_iter = file_size_table.end();
 
-        ProgressInsertOperation piop = ProgressInsertOperation<T>(dedup_table, 
+        size_t no_unique_file_sizes = 0;
+
+        for(; iter != end_iter; )
+        {
+            if (iter->second.size() == 1)
+            {
+                iter = file_size_table.erase(iter);
+                ++no_unique_file_sizes;
+            }
+            else
+            {
+                ++iter;
+            }
+        }
+
+        cout << "Removed " << no_unique_file_sizes << " files with unique size "
+        "from deduplication.\n";
+
+        dedup_table.reserve(file_size_table.size());
+    }
+
+    {
+        InsertOperation<T> iop = InsertOperation<T>(dedup_table, 
         bytes, total_count, total_count / 20);
-        for (const auto &path : paths_to_deduplicate)
-        {
-            try
-            {
-                cout << "Searching " << path << " for duplicates"
-                    << (recurse ? " recursively" : "") << "..." << endl;
-                traverse_path<T>(path, recurse, piop);
-            }
-            catch (const std::exception &e)
-            {
-                cerr << e.what() << '\n';
-            }
-        }
-        cout << "\r" << "Done checking " << total_count 
-             << " files occupying " << format_bytes(total_size) << "."
-             << endl << endl;
-    }
-    else
-    {
-        NoProgressInsertOperation iop = 
-            NoProgressInsertOperation<T>(dedup_table, bytes);
-        for (const auto &path : paths_to_deduplicate)
-        {
-            try
-            {
-                cout << "Searching " << path << " for duplicates"
-                    << (recurse ? " recursively" : "") << "..." << endl;
-                traverse_path<T>(path, recurse, iop);
-            }
-            catch (const std::exception &e)
-            {
-                cerr << e.what() << '\n';
-            }
-        }
 
-        const size_t total_count = iop.get_current_count();
-        const uintmax_t total_size = iop.get_current_size();
-        cout << "\r" << "Done checking " << total_count 
-             << " files occupying " << format_bytes(total_size) << "."
-             << endl << endl;
+        FileSizeTable::iterator iter = file_size_table.begin();
+        FileSizeTable::iterator end_iter = file_size_table.end();
+
+        for (; iter != end_iter;)
+        {
+            for (const auto &path : iter->second)
+            {
+                try
+                {
+                    iop.insert(path, iter->first);
+                }
+                catch(const fs::filesystem_error &e)
+                {
+                    std::cerr << e.what() << '\n';
+                }
+                catch(const std::runtime_error &e)
+                {
+                    std::cerr << e.what() << " ["
+                        << path << "]\n";
+                }
+                catch(const std::exception& e)
+                {
+                    std::cerr << e.what() << '\n';
+                }
+                draw_progress(iop);
+            }
+            iter = file_size_table.erase(iter);
+        }
     }
-        
+
+    cout << "\r" << "Done checking." << endl;
+
     // Includes vectors of files whose whole content is the same
     vector<vector<string>> duplicates;
 
     for (const auto &pair : dedup_table)
     {
-        for (const auto &dup_vec : pair.second)
+        for (const auto &inner_pair : pair.second)
         {
-            if (dup_vec.size() > 1)
+            for (const auto &dup_vec : inner_pair.second)
             {
-                duplicates.push_back(dup_vec);
+                if (dup_vec.size() > 1)
+                {
+                    duplicates.push_back(dup_vec);
+                }
             }
         }
     }
