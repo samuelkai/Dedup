@@ -312,7 +312,7 @@ vector<vector<string>> find_duplicates(const cxxopts::ParseResult &result,
         }
     }
 
-    cout << "\r" << "Done checking." << endl;
+    cout << "\r" << "Done checking.                             " << endl;
 
     // Includes vectors of files whose whole content is the same
     vector<vector<string>> duplicates;

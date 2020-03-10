@@ -94,7 +94,7 @@ cxxopts::ParseResult parse(int argc, char* argv[])
     }
     catch (const cxxopts::OptionException& e)
     {
-        std::cerr << "error parsing options: " << e.what() << "\n";
+        std::cerr << "error parsing options: " << e.what() << '\n';
         throw EndException(1);
     }
 

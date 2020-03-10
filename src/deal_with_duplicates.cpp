@@ -17,13 +17,72 @@ using std::vector;
 namespace fs = std::filesystem;
 
 /**
- * Returns true if the given string is a positive integer.
+ * Checks if the given string is a valid number for selecting kept duplicates.
+ * If it is, returns the number.
+ * If it is not, returns 0 (which is not valid).
  */
-bool is_positive_integer(const string& s)
+size_t get_valid_number(const string &s, size_t upper_limit)
 {
-    string::const_iterator it = s.begin();
-    while (it != s.end() && std::isdigit(*it)) ++it;
-    return !s.empty() && it == s.end();
+    std::istringstream iss(s);
+    size_t number;
+    iss >> number;
+    if (iss.fail())
+    {
+        return 0;
+    }
+    else if (1 <= number && number <= upper_limit)
+    {
+        return number;
+    }
+    return 0;
+}
+
+/**
+ * Splits the given string into a vector of tokens using the given delimiter.
+ */
+std::vector<std::string> split(const std::string &s, char delimiter)
+{
+   std::vector<std::string> tokens;
+   std::string token;
+   std::istringstream tokenStream(s);
+   while (std::getline(tokenStream, token, delimiter))
+   {
+      tokens.push_back(token);
+   }
+   return tokens;
+}
+
+/**
+ * Removes files in [paths] which are not specified to be kept in [kept].
+ * Kept includes indexes of kept files, and its indexing starts at 1 because of 
+ * UI reasons.
+ */
+void remove_files(const vector<size_t> &kept, const vector<string> &paths)
+{
+    for (size_t i = 1; i <= paths.size(); ++i)
+    {
+        if (std::find(kept.begin(), kept.end(), i) == kept.end())
+        {
+            try
+            {
+                if (fs::remove(paths[i-1]))
+                {
+                    cout << "Removed file \"" << paths[i-1] << "\"\n";
+                }
+                else
+                {
+                    std::cerr << "File \"" << paths[i-1]
+                            << "\" not found, could not "
+                            << "delete it\n\n";
+                }
+            }
+            catch (const fs::filesystem_error &e)
+            {
+                std::cerr << e.what() << "\n\n";
+            }
+        }
+    }
+    cout << '\n';
 }
 
 /**
@@ -32,85 +91,60 @@ bool is_positive_integer(const string& s)
  */
 void prompt_duplicate_deletions(const vector<vector<string>> &duplicates)
 {
-    cout << endl;
+    cout << '\n';
     // For each set of duplicates
     for (const auto &dup_vec : duplicates)
     {
+        // Print the paths of the set of duplicates
         for (size_t i = 1; i <= dup_vec.size(); ++i)
         {
             cout << "[" << i << "] " << dup_vec[i-1] << '\n';
         }
         cout << endl;
 
-        string input;
         bool valid_input = false;
         while (!valid_input)
         {
             cout << "Select the file(s) to keep: [1-"
-                 << dup_vec.size() << "], [a]ll or [n]one" << endl;
+                 << dup_vec.size() << "], [a]ll or [n]one. "
+                 "Separate numbers with space." << endl;
+
+            string input;
             getline(cin, input);
-            if (is_positive_integer(input))
-            {
-                try
-                {
-                    const auto kept = std::stoull(input);
-                    // Given number must specify one of the duplicates
-                    if (kept <= dup_vec.size())
-                    {
-                        valid_input = true;
-                        for (size_t i = 1; i <= dup_vec.size(); ++i)
-                        {
-                            // Remove all others
-                            if (i != kept)
-                            {
-                                try
-                                {
-                                    if (!fs::remove(dup_vec[i-1]))
-                                    {
-                                        std::cerr << "File \"" << dup_vec[i-1]
-                                                << "\" not found, could not "
-                                                << "delete it\n";
-                                    }
-                                }
-                                catch (const fs::filesystem_error &e)
-                                {
-                                    std::cerr << e.what() << '\n';
-                                }
-                            }
-                        }
-                    }
-                }
-                catch(const std::out_of_range &e)
-                {
-                }
-                catch(const std::exception &e)
-                {
-                    std::cerr << e.what() << '\n';
-                }
-            }
-            else if (input == "n" || input == "none") // Remove all
+
+            if (input == "n" || input == "none") // Remove all
             {
                 valid_input = true;
-                for (const auto &path : dup_vec)
-                {
-                    try
-                    {
-                        if (!fs::remove(path))
-                        {
-                            std::cerr << "File \"" << path
-                                        << "\" not found, could not "
-                                        << "delete it\n";
-                        }
-                    }
-                    catch (const fs::filesystem_error &e)
-                    {
-                        std::cerr << e.what() << '\n';
-                    }
-                }
+                vector<size_t> empty;
+                remove_files(empty, dup_vec);
             }
             else if (input == "a" || input == "all") // Keep all
             {
                 valid_input = true;
+            }
+            else // Check if valid numbers were given
+            {
+                const vector<string> vec = split(input, ' ');
+                vector<size_t> kept;
+                for (const string &s : vec)
+                {
+                    size_t number = get_valid_number(s, dup_vec.size());
+                    if (number != 0)
+                    {
+                        valid_input = true;
+                        kept.push_back(number);
+                    }
+                    else
+                    {
+                        valid_input = false;
+                        break;
+                    }
+                }
+
+                if (valid_input)
+                {
+                    remove_files(kept, dup_vec);
+                }
             }
         }        
     }
@@ -149,12 +183,12 @@ void deal_with_duplicates(const cxxopts::ParseResult &result,
 
     if (list) // List found duplicates, don't prompt their deletion
     {
-        cout << "\n";
+        cout << '\n';
         for (const auto &dup_vec : duplicates)
         {
             for (size_t i = 0; i < dup_vec.size(); ++i)
             {
-                cout << dup_vec[i] << "\n";
+                cout << dup_vec[i] << '\n';
             }
             cout << endl;
         }
