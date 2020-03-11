@@ -57,7 +57,7 @@ cxxopts::ParseResult parse(int argc, char* argv[])
             ("b,bytes", "Number of bytes from the beginning of each file that "
                 "are used in hash calculation. "
                 "0 means that the whole file is hashed.",
-                cxxopts::value<uint64_t>()->default_value("4096"), "N")
+                cxxopts::value<uintmax_t>()->default_value("4096"), "N")
             ("h,help", "Print this help")
             ("l,list", "List found duplicates, don't prompt for deduplication", 
                 cxxopts::value<bool>()->default_value("false"))

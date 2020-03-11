@@ -1,3 +1,7 @@
+/*------------------------------------------------------------------------------
+This program finds duplicate files, i.e. files with identical content.
+------------------------------------------------------------------------------*/
+
 #include "cxxopts/cxxopts.hpp"
 #include "deal_with_duplicates.h"
 #include "find_duplicates.h"

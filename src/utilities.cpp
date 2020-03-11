@@ -90,7 +90,7 @@ bool compare_files(const string &path1, const string &path2)
  * path. Parameter "bytes" specifies the number of bytes that are considered.
  * If bytes == 0, the whole file is hashed.
  */
-uint64_t hash_file(const string &path, uint64_t bytes)
+uint64_t hash_file(const string &path, uintmax_t bytes)
 {
     std::ifstream istream;
     istream.exceptions(std::ifstream::failbit | std::ifstream::badbit);

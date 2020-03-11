@@ -76,7 +76,7 @@ bool find_duplicate_file(const File &file,
  */
 template <typename T>
 void insert_into_dedup_table(const File &file, uintmax_t size,
-                             DedupTable<T> &dedup_table, uint64_t bytes)
+                             DedupTable<T> &dedup_table, uintmax_t bytes)
 {   
     // Calculate the hash and truncate it to the specified length
     const auto hash = static_cast<T>(hash_file(file.path, bytes));
@@ -105,13 +105,13 @@ void insert_into_dedup_table(const File &file, uintmax_t size,
 template <typename T>
 class DedupManager {
         DedupTable<T> &dedup_table;
-        const uint64_t bytes;
+        const uintmax_t bytes;
         size_t current_count;
         const size_t total_count;
         const size_t step_size;
     
     public:
-        DedupManager(DedupTable<T> &d, uint64_t b, size_t t_c, size_t s_s)
+        DedupManager(DedupTable<T> &d, uintmax_t b, size_t t_c, size_t s_s)
             : dedup_table(d), bytes(b), current_count(0), total_count(t_c), 
               step_size( s_s == 0 ? 1 : s_s ) {}; // Prevent zero step size
 
@@ -135,7 +135,7 @@ class DedupManager {
                 std::cerr << e.what() << '\n';
             }
             ++current_count;
-            draw_progress(*this);
+            print_progress(*this);
         }
 
         size_t get_current_count() const {return current_count;}
@@ -149,7 +149,11 @@ class DedupManager {
  * their paths and last modification times are collected.
  */
 class ScanManager {
+        // size_t can store the maximum size of a theoretically possible object 
+        // of any type. Because we store Files in objects, we use size_t.
         size_t count;
+        // uintmax_t is the maximum width unsigned integer type. We use it in 
+        // order to not limit file size by type choice.
         uintmax_t size;
         FileSizeTable &file_size_table;
     public:
@@ -191,10 +195,10 @@ class ScanManager {
 };
 
 /**
- * Draws a bar on the terminal showing the progress on finding duplicates.
+ * Prints the progress on finding duplicates.
  */
 template <typename T>
-void draw_progress(DedupManager<T> &op) {
+void print_progress(DedupManager<T> &op) {
     const size_t curr_f_cnt = op.get_current_count();
     const size_t tot_f_cnt = op.get_total_count();
     const size_t step_size = op.get_step_size();
@@ -297,15 +301,15 @@ vector<DuplicateVector> find_duplicates(const cxxopts::ParseResult &cl_args,
             }
         }
 
-        cout << "Removed " << no_unique_file_sizes << " files with unique size "
-        "from deduplication.\n";
+        cout << "Eliminated " << no_unique_file_sizes << " files with unique "
+        "size from deduplication.\n";
     }
 
     DedupTable<T> dedup_table;
 
     // Both are grouped by file size
     dedup_table.reserve(file_size_table.size());
-    const uint64_t bytes = cl_args["bytes"].as<uint64_t>();
+    const uintmax_t bytes = cl_args["bytes"].as<uintmax_t>();
 
     { // The deduplication
         DedupManager<T> iop = DedupManager<T>(dedup_table, 

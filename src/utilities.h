@@ -43,7 +43,7 @@ bool compare_files(const std::string &path1,
  * path. Parameter "bytes" specifies the number of bytes that are considered.
  * If bytes == 0, the whole file is hashed.
  */
-uint64_t hash_file(const std::string &path, uint64_t bytes);
+uint64_t hash_file(const std::string &path, uintmax_t bytes);
 
 /**
  * Formats the given bytes as a string with a binary prefix.
