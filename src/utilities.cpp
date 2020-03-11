@@ -41,6 +41,7 @@ bool compare_files(const string &path1, const string &path2)
     {
         throw FileException(e.code());
     }
+
     constexpr size_t buffer_size = 4096;
     char input_buffer1[buffer_size];
     char input_buffer2[buffer_size];
@@ -72,7 +73,6 @@ bool compare_files(const string &path1, const string &path2)
                 throw FileException(e.code());
             }
         }
-        
         const auto count2 = f2.gcount();
 
         if (count1 != count2 ||
@@ -154,9 +154,9 @@ uint64_t hash_file(const string &path, uint64_t bytes)
         {
             try
             {
-                if (bytes < buffer_size)
+                if ((bytes - bytes_read) < buffer_size)
                 {
-                    istream.read((char*)input_buffer, bytes);    
+                    istream.read((char*)input_buffer, (bytes - bytes_read));
                 }
                 else {
                     istream.read((char*)input_buffer, buffer_size);
