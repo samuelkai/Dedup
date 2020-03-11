@@ -13,6 +13,11 @@ using std::vector;
 
 namespace fs = std::filesystem;
 
+File::File(std::string _path, std::filesystem::file_time_type _m_time) : 
+        path(std::move(_path)), m_time(_m_time)
+{
+}
+
 /**
  * Exception that is thrown when file stream is not valid.
  */

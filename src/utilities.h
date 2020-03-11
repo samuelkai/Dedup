@@ -13,8 +13,7 @@
 struct File {
     std::string path;
     std::filesystem::file_time_type m_time;
-    File(std::string _path, std::filesystem::file_time_type _m_time) : 
-        path(_path), m_time(_m_time) {};
+    File(std::string _path, std::filesystem::file_time_type _m_time);
 };
 
 /**
@@ -28,7 +27,7 @@ using DuplicateVector = std::vector<File>;
 class FileException : public std::system_error
 {
     public:
-        FileException(std::error_code ec);
+        explicit FileException(std::error_code ec);
 };
 
 /**

@@ -11,7 +11,7 @@ class EndException : public std::exception
        const int _bad;
 
     public:
-        EndException(int bad);
+        explicit EndException(int bad);
         /**
          * Returns 1 if the termination is because of an error, 0 if otherwise
          */

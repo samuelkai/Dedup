@@ -30,7 +30,7 @@ size_t get_valid_number(const string &s, size_t upper_limit)
     {
         return 0;
     }
-    else if (1 <= number && number <= upper_limit)
+    if (1 <= number && number <= upper_limit)
     {
         return number;
     }
@@ -195,9 +195,9 @@ void deal_with_duplicates(const cxxopts::ParseResult &cl_args,
         cout << '\n';
         for (const auto &dup_vec : duplicates)
         {
-            for (size_t i = 0; i < dup_vec.size(); ++i)
+            for (const auto &file : dup_vec)
             {
-                cout << dup_vec[i].path << '\n';
+                cout << file.path << '\n';
             }
             cout << endl;
         }
