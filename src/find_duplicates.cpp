@@ -17,44 +17,48 @@ using std::vector;
 
 namespace fs = std::filesystem;
 
-// Stores file paths and hashes of file contents.
-// The key is the hash of the beginning N bytes of a file,
-// where N is a program argument.
-// The key type T is one of {uint8_t, uint16_t, uint32_t, uint64_t}.
-// The value contains the paths of all files that produce the same hash.
-// Because files can differ after the first N bytes, the outer vector contains
-// inner vectors that contain files whose whole content is the same.
+/**
+ * Stores Files, their sizes and hashes of file contents.
+ * The key of the outer map is file size.
+ * The key of the inner map is the hash of the beginning N bytes of a file,
+ * where N is a program argument.
+ * The key type T is one of {uint8_t, uint16_t, uint32_t, uint64_t}.
+ * The value of the inner map contains the paths of all files that produce the 
+ * same hash. Because files can differ after the first N bytes, the outer vector
+ * contains inner vectors that contain Files whose whole content is the same.
+ */
 template <typename T>
 using DedupTable = std::unordered_map<
     uintmax_t,
     std::unordered_map<
         T,
-        vector<
-            vector<
-                string>
-            >
-        > 
-    >;
+        vector<DuplicateVector>
+    >
+>;
 
-using FileSizeTable = std::unordered_map<uintmax_t, vector<string>>;
+/**
+ * Stores Files grouped by their size. Used during the file scanning phase.
+ */
+using FileSizeTable = std::unordered_map<uintmax_t, vector<File>>;
 
 /**
  * Checks the given vector of duplicate file vectors for a file that has the
  * same content as the file in the given path. If found, inserts the path
  * to the duplicate file vector and returns true.
  */ 
-bool find_duplicate_file(const string &path,
-                         vector<vector<string>> &vec_vec)
+bool find_duplicate_file(const File &file,
+                         vector<DuplicateVector> &vec_vec)
 {
-    // vec_vec contains files that have the same hash
-    // dup_vec contains files whose whole content is the same
+    // vec_vec contains Files that have the same hash
+    // dup_vec contains Files whose whole content is the same
     for (auto &dup_vec: vec_vec)
     {
         try
         {
-            if (compare_files(path, dup_vec[0]))
+            if (compare_files(file.path, dup_vec[0].path))
             {
-                dup_vec.push_back(path);
+                // Identical to the files in dup_vec
+                dup_vec.push_back(file);
                 return true;
             }
         }
@@ -68,34 +72,38 @@ bool find_duplicate_file(const string &path,
 }
 
 /**
- * Inserts the given path into the deduplication table.
+ * Inserts the given File into the deduplication table.
  */
 template <typename T>
-void insert_into_dedup_table(const string &path, uintmax_t size,
+void insert_into_dedup_table(const File &file, uintmax_t size,
                              DedupTable<T> &dedup_table, uint64_t bytes)
 {   
-        // Truncate the hash to the specified length
-        const auto hash = static_cast<T>(hash_file(path, bytes));
+    // Calculate the hash and truncate it to the specified length
+    const auto hash = static_cast<T>(hash_file(file.path, bytes));
 
-        if (dedup_table[size][hash].empty()) // First file that produces this hash
+    if (dedup_table[size][hash].empty()) // First file that produces this hash
+    {
+        dedup_table[size][hash].push_back(
+            vector<File>{file});
+    }
+    else
+    {
+        if (!find_duplicate_file(
+            file, dedup_table[size][hash]))
         {
+            // File differs from others with the same hash
             dedup_table[size][hash].push_back(
-                vector<string>{path});
+                vector<File>{file});
         }
-        else
-        {
-            if (!find_duplicate_file(
-                path, dedup_table[size][hash]))
-            {
-                // File differs from others with the same hash
-                dedup_table[size][hash].push_back(
-                    vector<string>{path});
-            }
-        }
+    }
 }
 
+/**
+ * Manages the deduplication. Stores progress information and inserts Files to
+ * dedup_table.
+ */
 template <typename T>
-class InsertOperation {
+class DedupManager {
         DedupTable<T> &dedup_table;
         const uint64_t bytes;
         size_t current_count;
@@ -103,14 +111,31 @@ class InsertOperation {
         const size_t step_size;
     
     public:
-        InsertOperation(DedupTable<T> &d, uint64_t b, size_t t_c, size_t s_s)
+        DedupManager(DedupTable<T> &d, uint64_t b, size_t t_c, size_t s_s)
             : dedup_table(d), bytes(b), current_count(0), total_count(t_c), 
               step_size( s_s == 0 ? 1 : s_s ) {}; // Prevent zero step size
 
-        void insert(const string &path, uintmax_t size)
+        void insert(const File &file, uintmax_t size)
         {
-            insert_into_dedup_table(path, size, dedup_table, bytes);
+            try
+            {
+                insert_into_dedup_table(file, size, dedup_table, bytes);
+            }
+            catch(const fs::filesystem_error &e)
+            {
+                std::cerr << e.what() << '\n';
+            }
+            catch(const std::runtime_error &e)
+            {
+                std::cerr << e.what() << " ["
+                    << file.path << "]\n";
+            }
+            catch(const std::exception& e)
+            {
+                std::cerr << e.what() << '\n';
+            }
             ++current_count;
+            draw_progress(*this);
         }
 
         size_t get_current_count() const {return current_count;}
@@ -118,26 +143,32 @@ class InsertOperation {
         size_t get_step_size() const {return step_size;}
 };
 
-class CountOperation {
+
+/**
+ * Manages the scanning that is done before deduplication. Files are counted and
+ * their paths and last modification times are collected.
+ */
+class ScanManager {
         size_t count;
         uintmax_t size;
         FileSizeTable &file_size_table;
     public:
-        CountOperation(FileSizeTable &f)
-            : count(0), size(0), file_size_table(f)
-             {};
+        ScanManager(FileSizeTable &f)
+            : count(0), size(0), file_size_table(f) {};
 
         void insert(const fs::directory_entry &entry)
         {
             try
             {
+                // Symlinks are not followed
                 if (fs::is_regular_file(fs::symlink_status(entry.path()))
                     && !fs::is_empty(entry.path()))
                 {
                     ++count;
                     size += entry.file_size();
                     file_size_table[entry.file_size()]
-                        .push_back(entry.path().string());
+                        .push_back(File(entry.path().string(), 
+                                        entry.last_write_time()));
                 }
             }
             catch(const fs::filesystem_error &e)
@@ -163,7 +194,7 @@ class CountOperation {
  * Draws a bar on the terminal showing the progress on finding duplicates.
  */
 template <typename T>
-void draw_progress(InsertOperation<T> &op) {
+void draw_progress(DedupManager<T> &op) {
     const size_t curr_f_cnt = op.get_current_count();
     const size_t tot_f_cnt = op.get_total_count();
     const size_t step_size = op.get_step_size();
@@ -179,21 +210,21 @@ void draw_progress(InsertOperation<T> &op) {
 }
 
 /**
- * Traverses the given path for files, which are then checked for duplicates.
- * Only regular files are checked.
+ * Traverses the given path and collects information about files.
  * Directories are traversed recursively if wanted.
  */
 template <typename T>
-void traverse_path(const fs::path &path, bool recurse, CountOperation &op)
+void scan_path(const fs::path &path, bool recurse, ScanManager &sm)
 {
     if (fs::is_directory(path))
     {
+        // Directories that cannot be accessed are skipped
         if (recurse)
-        {            
+        {
             for (const auto &p : fs::recursive_directory_iterator(path, 
                 fs::directory_options::skip_permission_denied))
             {
-                op.insert(p);
+                sm.insert(p);
             }
         }
         else
@@ -201,45 +232,39 @@ void traverse_path(const fs::path &path, bool recurse, CountOperation &op)
             for (const auto &p : fs::directory_iterator(path, 
                 fs::directory_options::skip_permission_denied))
             {
-                op.insert(p);
+                sm.insert(p);
             }
         }
     }
     else
     {
-        op.insert(fs::directory_entry(path));
+        sm.insert(fs::directory_entry(path));
     }
 }
 
 /**
- * Calculates hash values of files and stores them
- * in the deduplication table.
+ * Finds duplicate files from the given paths.
  * 
  * Path can be a file or a directory.
- * If it is a file, its hash is calculated.
- * If it is a directory, the hash of each regular file in the directory 
- * (recursively or not, depending on the argument) will be calculated.
+ * Directories can be searched recursively, according to the given parameter.
  * 
  * Returns a vector whose elements are vectors of duplicate files.
  */
 template <typename T>
-vector<vector<string>> find_duplicates(const cxxopts::ParseResult &result, 
+vector<DuplicateVector> find_duplicates(const cxxopts::ParseResult &cl_args, 
     const std::set<fs::path> &paths_to_deduplicate)
-{
-    DedupTable<T> dedup_table;
-
-    const uint64_t bytes = result["bytes"].as<uint64_t>();
-    const bool recurse = result["recurse"].as<bool>();
-    
+{    
+    // Start by scanning the paths for files
     FileSizeTable file_size_table;
     cout << "Counting number and size of files in given paths..." << endl;
-    CountOperation cop = CountOperation(file_size_table);
+    ScanManager cop = ScanManager(file_size_table);
     
+    const bool recurse = cl_args["recurse"].as<bool>();
     for (const auto &path : paths_to_deduplicate)
     {
         try
         {
-            traverse_path<T>(path, recurse, cop);
+            scan_path<T>(path, recurse, cop);
         }
         catch(const std::exception &e)
         {
@@ -253,7 +278,7 @@ vector<vector<string>> find_duplicates(const cxxopts::ParseResult &result,
     cout << "Counted " << total_count << " files occupying "
             << format_bytes(total_size) << "." << endl;
 
-    {
+    { // Files with unique size can't have duplicates
         FileSizeTable::iterator iter = file_size_table.begin();
         FileSizeTable::iterator end_iter = file_size_table.end();
 
@@ -274,12 +299,16 @@ vector<vector<string>> find_duplicates(const cxxopts::ParseResult &result,
 
         cout << "Removed " << no_unique_file_sizes << " files with unique size "
         "from deduplication.\n";
-
-        dedup_table.reserve(file_size_table.size());
     }
 
-    {
-        InsertOperation<T> iop = InsertOperation<T>(dedup_table, 
+    DedupTable<T> dedup_table;
+
+    // Both are grouped by file size
+    dedup_table.reserve(file_size_table.size());
+    const uint64_t bytes = cl_args["bytes"].as<uint64_t>();
+
+    { // The deduplication
+        DedupManager<T> iop = DedupManager<T>(dedup_table, 
         bytes, total_count, total_count / 20);
 
         FileSizeTable::iterator iter = file_size_table.begin();
@@ -287,26 +316,9 @@ vector<vector<string>> find_duplicates(const cxxopts::ParseResult &result,
 
         for (; iter != end_iter;)
         {
-            for (const auto &path : iter->second)
+            for (const auto &file : iter->second)
             {
-                try
-                {
-                    iop.insert(path, iter->first);
-                }
-                catch(const fs::filesystem_error &e)
-                {
-                    std::cerr << e.what() << '\n';
-                }
-                catch(const std::runtime_error &e)
-                {
-                    std::cerr << e.what() << " ["
-                        << path << "]\n";
-                }
-                catch(const std::exception& e)
-                {
-                    std::cerr << e.what() << '\n';
-                }
-                draw_progress(iop);
+                iop.insert(file, iter->first);
             }
             iter = file_size_table.erase(iter);
         }
@@ -315,7 +327,7 @@ vector<vector<string>> find_duplicates(const cxxopts::ParseResult &result,
     cout << "\r" << "Done checking.                             " << endl;
 
     // Includes vectors of files whose whole content is the same
-    vector<vector<string>> duplicates;
+    vector<DuplicateVector> duplicates;
 
     for (const auto &pair : dedup_table)
     {
@@ -334,15 +346,15 @@ vector<vector<string>> find_duplicates(const cxxopts::ParseResult &result,
     return duplicates;
 }
 
-template vector<vector<string>> find_duplicates<uint8_t>(
-    const cxxopts::ParseResult &result, 
+template vector<DuplicateVector> find_duplicates<uint8_t>(
+    const cxxopts::ParseResult &cl_args, 
     const std::set<fs::path> &paths_to_deduplicate);
-template vector<vector<string>> find_duplicates<uint16_t>(
-    const cxxopts::ParseResult &result, 
+template vector<DuplicateVector> find_duplicates<uint16_t>(
+    const cxxopts::ParseResult &cl_args, 
     const std::set<fs::path> &paths_to_deduplicate);
-template vector<vector<string>> find_duplicates<uint32_t>(
-    const cxxopts::ParseResult &result, 
+template vector<DuplicateVector> find_duplicates<uint32_t>(
+    const cxxopts::ParseResult &cl_args, 
     const std::set<fs::path> &paths_to_deduplicate);
-template vector<vector<string>> find_duplicates<uint64_t>(
-    const cxxopts::ParseResult &result, 
+template vector<DuplicateVector> find_duplicates<uint64_t>(
+    const cxxopts::ParseResult &cl_args, 
     const std::set<fs::path> &paths_to_deduplicate);

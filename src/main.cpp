@@ -20,12 +20,12 @@ int main(int argc, char *argv[])
 {
     try
     {
-        const auto result = parse(argc, argv);
+        const auto cl_args = parse(argc, argv);
 
         std::set<fs::path> paths_to_deduplicate;
-        if (result.count("path"))
+        if (cl_args.count("path"))
         {
-            for (const auto &path : result["path"].as<vector<string>>())
+            for (const auto &path : cl_args["path"].as<vector<string>>())
             {
                 try
                 {
@@ -63,23 +63,23 @@ int main(int argc, char *argv[])
             return 1;
         }
         
-        const int hash_size = result["hash"].as<int>();
+        const int hash_size = cl_args["hash"].as<int>();
         switch (hash_size)
         {
         case 1:
-            deal_with_duplicates(result, find_duplicates<uint8_t>(result, 
+            deal_with_duplicates(cl_args, find_duplicates<uint8_t>(cl_args, 
                                                   paths_to_deduplicate));
             break;
         case 2:
-            deal_with_duplicates(result, find_duplicates<uint16_t>(result, 
+            deal_with_duplicates(cl_args, find_duplicates<uint16_t>(cl_args, 
                                                   paths_to_deduplicate));
             break;
         case 4:
-            deal_with_duplicates(result, find_duplicates<uint32_t>(result, 
+            deal_with_duplicates(cl_args, find_duplicates<uint32_t>(cl_args, 
                                                   paths_to_deduplicate));
             break;
         default:
-            deal_with_duplicates(result, find_duplicates<uint64_t>(result, 
+            deal_with_duplicates(cl_args, find_duplicates<uint64_t>(cl_args, 
                                                   paths_to_deduplicate));
             break;
         }

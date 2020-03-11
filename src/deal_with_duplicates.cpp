@@ -53,28 +53,36 @@ std::vector<std::string> split(const std::string &s, char delimiter)
 }
 
 /**
- * Removes files in [paths] which are not specified to be kept in [kept].
+ * Removes files in [files] which are not specified to be kept in [kept].
  * Kept includes indexes of kept files, and its indexing starts at 1 because of 
  * UI reasons.
  */
-void remove_files(const vector<size_t> &kept, const vector<string> &paths)
+void remove_files(const vector<size_t> &kept, const DuplicateVector &files)
 {
-    for (size_t i = 1; i <= paths.size(); ++i)
+    for (size_t i = 1; i <= files.size(); ++i)
     {
         if (std::find(kept.begin(), kept.end(), i) == kept.end())
         {
             try
             {
-                if (fs::remove(paths[i-1]))
+                if (fs::last_write_time(files[i-1].path) > files[i-1].m_time)
                 {
-                    cout << "Removed file \"" << paths[i-1] << "\"\n";
+                    std::cerr << "File \"" << files[i-1].path << "\" has been "
+                    "modified after it was scanned. Did not delete it.\n";
                 }
                 else
                 {
-                    std::cerr << "File \"" << paths[i-1]
-                            << "\" not found, could not "
-                            << "delete it\n\n";
-                }
+                    if (fs::remove(files[i-1].path))
+                    {
+                        cout << "Deleted file \"" << files[i-1].path << "\"\n";
+                    }
+                    else
+                    {
+                        std::cerr << "File \"" << files[i-1].path
+                                << "\" not found, could not "
+                                << "delete it\n\n";
+                    }
+                }                
             }
             catch (const fs::filesystem_error &e)
             {
@@ -89,7 +97,7 @@ void remove_files(const vector<size_t> &kept, const vector<string> &paths)
  * Asks the user to select on the command line which files are kept 
  * in each set of duplicates.
  */
-void prompt_duplicate_deletions(const vector<vector<string>> &duplicates)
+void prompt_duplicate_deletions(const vector<DuplicateVector> &duplicates)
 {
     cout << '\n';
     // For each set of duplicates
@@ -98,7 +106,7 @@ void prompt_duplicate_deletions(const vector<vector<string>> &duplicates)
         // Print the paths of the set of duplicates
         for (size_t i = 1; i <= dup_vec.size(); ++i)
         {
-            cout << "[" << i << "] " << dup_vec[i-1] << '\n';
+            cout << "[" << i << "] " << dup_vec[i-1].path << '\n';
         }
         cout << endl;
 
@@ -154,11 +162,11 @@ void prompt_duplicate_deletions(const vector<vector<string>> &duplicates)
  * Deal with the given duplicates according to the given parameters.
  * List, summarize or prompt for deletion.
  */
-void deal_with_duplicates(const cxxopts::ParseResult &result, 
-                          const vector<vector<string>> &duplicates)
+void deal_with_duplicates(const cxxopts::ParseResult &cl_args, 
+                          const vector<DuplicateVector> &duplicates)
 {
-    const bool list = result["list"].as<bool>();
-    const bool summarize = result["summarize"].as<bool>();
+    const bool list = cl_args["list"].as<bool>();
+    const bool summarize = cl_args["summarize"].as<bool>();
 
     if (duplicates.empty())
     {
@@ -172,7 +180,8 @@ void deal_with_duplicates(const cxxopts::ParseResult &result,
     {
         // A set of n identical files has n - 1 duplicate files
         number_of_duplicate_files += dup_vec.size() - 1;
-        duplicates_size += (dup_vec.size() - 1) * fs::file_size(dup_vec[0]);
+        duplicates_size += (dup_vec.size() - 1) 
+            * fs::file_size(dup_vec[0].path);
     }
 
     cout << "Found " << number_of_duplicate_files
@@ -188,7 +197,7 @@ void deal_with_duplicates(const cxxopts::ParseResult &result,
         {
             for (size_t i = 0; i < dup_vec.size(); ++i)
             {
-                cout << dup_vec[i] << '\n';
+                cout << dup_vec[i].path << '\n';
             }
             cout << endl;
         }

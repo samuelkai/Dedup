@@ -18,7 +18,7 @@ int EndException::is_bad() const noexcept
 }
 
 /**
- * Parse command line arguments
+ * Parse command line arguments.
  */
 cxxopts::ParseResult parse(int argc, char* argv[])
 {

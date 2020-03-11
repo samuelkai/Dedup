@@ -189,6 +189,9 @@ uint64_t hash_file(const string &path, uint64_t bytes)
     return (uint64_t)hash;
 }
 
+/**
+ * Formats the given bytes as a string with a binary prefix.
+ */
 string format_bytes(uintmax_t bytes)
 {
     const vector<string> prefixes = 

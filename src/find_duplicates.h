@@ -1,6 +1,8 @@
 #ifndef FIND_DUPLICATES_H
 #define FIND_DUPLICATES_H
 
+#include "utilities.h"
+
 #include "cxxopts/cxxopts.hpp"
 
 #include <filesystem>
@@ -10,17 +12,16 @@
 #include <vector>
 
 /**
- * Calculates hash values of files and stores them
- * in the deduplication table.
+ * Finds duplicate files from the given paths.
  * 
  * Path can be a file or a directory.
- * If it is a file, its hash is calculated.
- * If it is a directory, the hash of each regular file in the directory 
- * (recursively or not, depending on the argument) will be calculated.
+ * Directories can be searched recursively, according to the given parameter.
+ * 
+ * Returns a vector whose elements are vectors of duplicate files.
  */
 template <typename T>
-std::vector<std::vector<std::string>> find_duplicates(
-    const cxxopts::ParseResult &result, 
+std::vector<DuplicateVector> find_duplicates(
+    const cxxopts::ParseResult &cl_args, 
     const std::set<std::filesystem::path> &paths_to_deduplicate);
 
 #endif // FIND_DUPLICATES_H

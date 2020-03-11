@@ -3,9 +3,27 @@
 
 #include <filesystem>
 #include <string>
+#include <vector>
 
 /**
- * Exception that compare_files throws when it can't open a file.
+ * Stores a file's path and last modification time. When the file is asked to be
+ * deleted, the time is used to check if the file has been modified after it has
+ * been scanned.
+ */
+struct File {
+    std::string path;
+    std::filesystem::file_time_type m_time;
+    File(std::string _path, std::filesystem::file_time_type _m_time) : 
+        path(_path), m_time(_m_time) {};
+};
+
+/**
+ * A vector that contains identical Files.
+ */
+using DuplicateVector = std::vector<File>;
+
+/**
+ * Exception that is thrown when file stream is not valid.
  */
 class FileException : public std::system_error
 {
@@ -27,6 +45,9 @@ bool compare_files(const std::string &path1,
  */
 uint64_t hash_file(const std::string &path, uint64_t bytes);
 
+/**
+ * Formats the given bytes as a string with a binary prefix.
+ */
 std::string format_bytes(uintmax_t bytes);
 
 #endif // UTILITIES_H

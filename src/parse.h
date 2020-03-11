@@ -3,6 +3,9 @@
 
 #include "cxxopts/cxxopts.hpp"
 
+/**
+ * If this exception is thrown, the program should be terminated.
+ */
 class EndException : public std::exception
 {
        const int _bad;
@@ -15,6 +18,9 @@ class EndException : public std::exception
         int is_bad() const noexcept;
 };
 
+/**
+ * Parse command line arguments.
+ */
 cxxopts::ParseResult parse(int argc, char* argv[]);
 
 #endif // PARSE_H
