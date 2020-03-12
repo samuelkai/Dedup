@@ -5,7 +5,6 @@
 
 #include "cxxopts/cxxopts.hpp"
 
-#include <filesystem>
 #include <vector>
 
 /**

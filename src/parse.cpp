@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+using std::cerr;
 using std::cout;
 using std::endl;
 using std::string;
@@ -84,7 +85,7 @@ cxxopts::ParseResult parse(int argc, char* argv[])
             if (std::find(hash_sizes.begin(), hash_sizes.end(), size)
                 == hash_sizes.end())
             {
-                cout << "Invalid argument hash: must be one of "
+                cerr << "Invalid argument hash: must be one of "
                      << hash_sizes_str << endl;
                 throw EndException(1);
             }
@@ -94,7 +95,7 @@ cxxopts::ParseResult parse(int argc, char* argv[])
     }
     catch (const cxxopts::OptionException& e)
     {
-        std::cerr << "error parsing options: " << e.what() << '\n';
+        cerr << "error parsing options: " << e.what() << '\n';
         throw EndException(1);
     }
 

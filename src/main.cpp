@@ -13,7 +13,6 @@ This program finds duplicate files, i.e. files with identical content.
 #include <vector>
 
 using std::cerr;
-using std::cout;
 using std::endl;
 using std::string;
 using std::vector;
@@ -41,7 +40,7 @@ int main(int argc, char *argv[])
                         }
                     }
                     else {
-                        cout << path << " does not exist\n\n";
+                        cerr << path << " does not exist\n\n";
                     }
                 }
                 catch(const fs::filesystem_error &e)
@@ -56,7 +55,7 @@ int main(int argc, char *argv[])
         }
         else
         {
-            cout << "Usage: " << argv[0] << " path1 [path2] [path3]..." 
+            cerr << "Usage: " << argv[0] << " path1 [path2] [path3]..." 
                  << endl;
             return 1;
         }

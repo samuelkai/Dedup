@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 
+using std::cerr;
 using std::cin;
 using std::cout;
 using std::endl;
@@ -40,10 +41,10 @@ size_t get_valid_number(const string &s, size_t upper_limit)
 /**
  * Splits the given string into a vector of tokens using the given delimiter.
  */
-std::vector<std::string> split(const std::string &s, char delimiter)
+vector<string> split(const string &s, char delimiter)
 {
-   std::vector<std::string> tokens;
-   std::string token;
+   vector<string> tokens;
+   string token;
    std::istringstream tokenStream(s);
    while (std::getline(tokenStream, token, delimiter))
    {
@@ -67,7 +68,7 @@ void remove_files(const vector<size_t> &kept, const DuplicateVector &files)
             {
                 if (fs::last_write_time(files[i-1].path) > files[i-1].m_time)
                 {
-                    std::cerr << "File \"" << files[i-1].path << "\" has been "
+                    cerr << "File \"" << files[i-1].path << "\" has been "
                     "modified after it was scanned. Did not delete it.\n";
                 }
                 else
@@ -78,15 +79,14 @@ void remove_files(const vector<size_t> &kept, const DuplicateVector &files)
                     }
                     else
                     {
-                        std::cerr << "File \"" << files[i-1].path
-                                << "\" not found, could not "
-                                << "delete it\n\n";
+                        cerr << "File \"" << files[i-1].path
+                             << "\" not found, could not delete it\n\n";
                     }
                 }                
             }
             catch (const fs::filesystem_error &e)
             {
-                std::cerr << e.what() << "\n\n";
+                cerr << e.what() << "\n\n";
             }
         }
     }

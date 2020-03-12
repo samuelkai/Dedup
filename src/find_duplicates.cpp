@@ -65,7 +65,7 @@ bool find_duplicate_file(const File &file,
         catch(const FileException &e)
         {
             // By catching here we can compare to the other elements of dup_vec
-            std::cerr << e.what() << '\n';
+            cerr << e.what() << '\n';
         }                           
     }
     return false;
@@ -81,18 +81,20 @@ void insert_into_dedup_table(const File &file, uintmax_t size,
     // Calculate the hash and truncate it to the specified length
     const auto hash = static_cast<T>(hash_file(file.path, bytes));
 
-    if (dedup_table[size][hash].empty()) // First file that produces this hash
+    vector<DuplicateVector> &vec_vec = dedup_table[size][hash];
+
+    if (vec_vec.empty()) // First file that produces this hash
     {
-        dedup_table[size][hash].push_back(
+        vec_vec.push_back(
             vector<File>{file});
     }
     else
     {
         if (!find_duplicate_file(
-            file, dedup_table[size][hash]))
+            file, vec_vec))
         {
             // File differs from others with the same hash
-            dedup_table[size][hash].push_back(
+            vec_vec.push_back(
                 vector<File>{file});
         }
     }
@@ -123,16 +125,15 @@ class DedupManager {
             }
             catch(const fs::filesystem_error &e)
             {
-                std::cerr << e.what() << '\n';
+                cerr << e.what() << '\n';
             }
             catch(const std::runtime_error &e)
             {
-                std::cerr << e.what() << " ["
-                    << file.path << "]\n";
+                cerr << e.what() << " [" << file.path << "]\n";
             }
             catch(const std::exception& e)
             {
-                std::cerr << e.what() << '\n';
+                cerr << e.what() << '\n';
             }
             ++current_count;
             print_progress(*this);
@@ -177,16 +178,15 @@ class ScanManager {
             }
             catch(const fs::filesystem_error &e)
             {
-                std::cerr << e.what() << '\n';
+                cerr << e.what() << '\n';
             }
             catch(const std::runtime_error &e)
             {
-                std::cerr << e.what() << " ["
-                    << entry.path().string() << "]\n";
+                cerr << e.what() << " [" << entry.path().string() << "]\n";
             }
             catch(const std::exception& e)
             {
-                std::cerr << e.what() << '\n';
+                cerr << e.what() << '\n';
             }
         }
 
