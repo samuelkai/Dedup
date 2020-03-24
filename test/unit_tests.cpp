@@ -4,7 +4,6 @@
 
 #include <filesystem>
 #include <fstream>
-#include <set>
 #include <string>
 #include <vector>
 
@@ -33,7 +32,7 @@ TEST_CASE( "simple" )
 
     const auto result = parse(argc, argv);
 
-    const std::set<fs::path> paths_to_deduplicate = {test_dir_path};
+    const std::vector<fs::path> paths_to_deduplicate = {test_dir_path};
 
     const auto duplicates = 
         find_duplicates<uint64_t>(result, paths_to_deduplicate);
@@ -67,7 +66,7 @@ TEST_CASE( "simple2" )
 
     const auto result = parse(argc, argv);
 
-    const std::set<fs::path> paths_to_deduplicate = {test_dir_path};
+    const std::vector<fs::path> paths_to_deduplicate = {test_dir_path};
 
     const auto duplicates = 
         find_duplicates<uint64_t>(result, paths_to_deduplicate);
@@ -112,7 +111,7 @@ TEST_CASE( "simple3" )
 
     const auto result = parse(argc, argv);
 
-    const std::set<fs::path> paths_to_deduplicate = {test_dir_path};
+    const std::vector<fs::path> paths_to_deduplicate = {test_dir_path};
 
     const auto duplicates = 
         find_duplicates<uint64_t>(result, paths_to_deduplicate);

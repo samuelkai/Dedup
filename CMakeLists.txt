@@ -9,11 +9,15 @@ set(SOURCE_DIR ${PROJECT_SOURCE_DIR}/src)
 set(THIRD_PARTY_DIR ${PROJECT_SOURCE_DIR}/third_party)
 set(TEST_DIR ${PROJECT_SOURCE_DIR}/test)
 
-# set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-checks=*,-fuchsia-default-arguments;-header-filter=.;")
-
 add_compile_options(-Wall -Wextra -pedantic -Werror -Wshadow)
+
+# Checks
+#-------------------------------------------------
+# set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-checks=*,-fuchsia-default-arguments;-header-filter=.;")
 # add_compile_options(-fsanitize=address,undefined)
 # add_link_options(-fsanitize=address,undefined)
+#-------------------------------------------------
+
 
 # A library for xxHash
 #-------------------------------------------------
@@ -24,6 +28,8 @@ add_library(xxH
 target_include_directories(xxH PRIVATE
     ${THIRD_PARTY_DIR}
 )
+#-------------------------------------------------
+
 
 # A library for source files other than main
 #-------------------------------------------------
@@ -42,8 +48,6 @@ target_link_libraries(Others
     stdc++fs
     xxH
 )
-
-target_compile_options(Others PRIVATE -Wnon-virtual-dtor)
 #-------------------------------------------------
 
 

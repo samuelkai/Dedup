@@ -5,7 +5,6 @@
 
 #include <filesystem>
 #include <iostream>
-#include <set>
 #include <unordered_map>
 #include <vector>
 
@@ -256,7 +255,7 @@ void scan_path(const fs::path &path, bool recurse, ScanManager &sm)
  */
 template <typename T>
 vector<DuplicateVector> find_duplicates(const cxxopts::ParseResult &cl_args, 
-    const std::set<fs::path> &paths_to_deduplicate)
+    const std::vector<fs::path> &paths_to_deduplicate)
 {    
     // Start by scanning the paths for files
     FileSizeTable file_size_table;
@@ -352,13 +351,13 @@ vector<DuplicateVector> find_duplicates(const cxxopts::ParseResult &cl_args,
 
 template vector<DuplicateVector> find_duplicates<uint8_t>(
     const cxxopts::ParseResult &cl_args, 
-    const std::set<fs::path> &paths_to_deduplicate);
+    const std::vector<fs::path> &paths_to_deduplicate);
 template vector<DuplicateVector> find_duplicates<uint16_t>(
     const cxxopts::ParseResult &cl_args, 
-    const std::set<fs::path> &paths_to_deduplicate);
+    const std::vector<fs::path> &paths_to_deduplicate);
 template vector<DuplicateVector> find_duplicates<uint32_t>(
     const cxxopts::ParseResult &cl_args, 
-    const std::set<fs::path> &paths_to_deduplicate);
+    const std::vector<fs::path> &paths_to_deduplicate);
 template vector<DuplicateVector> find_duplicates<uint64_t>(
     const cxxopts::ParseResult &cl_args, 
-    const std::set<fs::path> &paths_to_deduplicate);
+    const std::vector<fs::path> &paths_to_deduplicate);

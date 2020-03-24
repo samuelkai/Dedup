@@ -6,7 +6,6 @@
 #include "cxxopts/cxxopts.hpp"
 
 #include <filesystem>
-#include <set>
 #include <vector>
 
 /**
@@ -20,6 +19,6 @@
 template <typename T>
 std::vector<DuplicateVector> find_duplicates(
     const cxxopts::ParseResult &cl_args, 
-    const std::set<std::filesystem::path> &paths_to_deduplicate);
+    const std::vector<std::filesystem::path> &paths_to_deduplicate);
 
 #endif // FIND_DUPLICATES_H

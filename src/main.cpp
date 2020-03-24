@@ -19,39 +19,58 @@ using std::vector;
 
 namespace fs = std::filesystem;
 
+vector<fs::path> extract_paths(vector<string> path_arg)
+{
+    vector<fs::path> paths_to_deduplicate;
+    for (const auto &path : path_arg)
+    {
+        try
+        {
+            fs::path canon_path = fs::canonical(path);
+            if (fs::exists(canon_path))
+            {
+                if (!fs::is_symlink(canon_path))
+                {
+                    if(std::find(paths_to_deduplicate.begin(), 
+                                 paths_to_deduplicate.end(), canon_path) 
+                                 != paths_to_deduplicate.end())
+                    {
+                        cerr << path 
+                             << " is already included in the deduplication\n";
+                    } else {
+                        paths_to_deduplicate.push_back(
+                            fs::canonical(canon_path));
+                    }
+                }
+            }
+            else {
+                cerr << path << " does not exist\n\n";
+            }
+        }
+        catch(const fs::filesystem_error &e)
+        {
+            cerr << e.what() << '\n';
+        }
+        catch(const std::exception &e)
+        {
+            cerr << e.what() << '\n';
+        }
+    }
+    return paths_to_deduplicate;
+}
+
 int main(int argc, char *argv[])
 {
     try
     {
         const auto cl_args = parse(argc, argv);
 
-        std::set<fs::path> paths_to_deduplicate;
+        vector<fs::path> paths_to_deduplicate;
+
         if (cl_args.count("path"))
         {
-            for (const auto &path : cl_args["path"].as<vector<string>>())
-            {
-                try
-                {
-                    if (fs::exists(path))
-                    {
-                        if (!fs::is_symlink(path))
-                        {
-                            paths_to_deduplicate.insert(fs::canonical(path));
-                        }
-                    }
-                    else {
-                        cerr << path << " does not exist\n\n";
-                    }
-                }
-                catch(const fs::filesystem_error &e)
-                {
-                    cerr << e.what() << '\n';
-                }
-                catch(const std::exception &e)
-                {
-                    cerr << e.what() << '\n';
-                }
-            }
+            paths_to_deduplicate = 
+                extract_paths(cl_args["path"].as<vector<string>>());
         }
         else
         {
