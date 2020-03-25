@@ -38,9 +38,10 @@ cxxopts::ParseResult parse(int argc, char* argv[])
             }
         }
 
-        cxxopts::Options options(argv[0], " - find duplicate files");
+        cxxopts::Options options(argv[0], " - find and delete duplicate files");
         options
-            .positional_help("path1 [path2] [path3]...")
+            .positional_help("path1 [path2] [path3]...\nBy default, the user "
+            "is prompted to select which duplicates to delete.")
             .show_positional_help();
 
         // Positional argument that won't be printed in help
@@ -59,6 +60,13 @@ cxxopts::ParseResult parse(int argc, char* argv[])
                 "are used in hash calculation. "
                 "0 means that the whole file is hashed.",
                 cxxopts::value<uintmax_t>()->default_value("4096"), "N")
+            ("d,delete", "Delete duplicate files without prompting, keeping "
+                "only one file in each set of duplicates. Files in paths given "
+                "earlier in the argument list have higher precedence to be "
+                "kept. If there are duplicates in the same folder, it is "
+                "undefined which file is kept. Must be specified twice in "
+                "order to avoid accidental use.", 
+                cxxopts::value<bool>()->default_value("false"))
             ("h,help", "Print this help")
             ("l,list", "List found duplicates, don't prompt for deduplication", 
                 cxxopts::value<bool>()->default_value("false"))
@@ -73,6 +81,13 @@ cxxopts::ParseResult parse(int argc, char* argv[])
 
         const auto result = options.parse(argc, argv);
 
+        if (result.count("delete") == 1)
+        {
+            cerr << "Argument delete must be specified twice in order to avoid "
+            "accidental use.\n";
+            throw EndException(1);
+        }
+
         if (result.count("help"))
         {
             cout << options.help({"Optional"}) << endl;
@@ -86,7 +101,7 @@ cxxopts::ParseResult parse(int argc, char* argv[])
                 == hash_sizes.end())
             {
                 cerr << "Invalid argument hash: must be one of "
-                     << hash_sizes_str << endl;
+                     << hash_sizes_str << '\n';
                 throw EndException(1);
             }
         }

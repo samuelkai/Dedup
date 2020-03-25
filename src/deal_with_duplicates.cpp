@@ -89,6 +89,10 @@ void remove_files(const vector<size_t> &kept, const DuplicateVector &files)
                 cerr << e.what() << "\n\n";
             }
         }
+        else
+        {
+            cout << "Kept file \"" << files[i-1].path << "\"\n";
+        }
     }
     cout << '\n';
 }
@@ -167,6 +171,9 @@ void deal_with_duplicates(const cxxopts::ParseResult &cl_args,
 {
     const bool list = cl_args["list"].as<bool>();
     const bool summarize = cl_args["summarize"].as<bool>();
+    const bool delete_no_prompt = 
+        (cl_args.count("delete") > 1 && cl_args["delete"].as<bool>())
+        ? true : false;
 
     if (duplicates.empty())
     {
@@ -206,6 +213,15 @@ void deal_with_duplicates(const cxxopts::ParseResult &cl_args,
     {
         // Just the previously printed summary, don't prompt deletion
     }    
+    else if (delete_no_prompt)
+    {
+        cout << '\n';
+        for (const auto &dup_vec : duplicates)
+        {
+            vector<size_t> keep_only_first{1};
+            remove_files(keep_only_first, dup_vec);
+        }
+    }
     else
     {
         prompt_duplicate_deletions(duplicates);
