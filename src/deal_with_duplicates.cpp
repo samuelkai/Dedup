@@ -1,8 +1,7 @@
 #include "deal_with_duplicates.h"
 #include "utilities.h"
 
-#include "cxxopts/cxxopts.hpp"
-
+#include <algorithm>
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -163,18 +162,48 @@ void prompt_duplicate_deletions(const vector<DuplicateVector> &duplicates)
 }
 
 /**
- * Deal with the given duplicates according to the given parameters.
- * List, summarize or prompt for deletion.
+ * Hard links all given files to the first one.
  */
-void deal_with_duplicates(const cxxopts::ParseResult &cl_args, 
+void hard_link_files(const DuplicateVector &files)
+{
+    for (size_t i = 2; i <= files.size(); ++i)
+    {
+        try
+        {
+            if (fs::last_write_time(files[i-1].path) > files[i-1].m_time)
+            {
+                cerr << "File \"" << files[i-1].path << "\" has been "
+                "modified after it was scanned. Did not hard link it.\n";
+            }
+            else
+            {
+                if (!fs::remove(files[i-1].path))
+                {
+                    cerr << "File \"" << files[i-1].path
+                            << "\" not found, could not delete it\n\n";
+                }
+                else
+                {
+                    fs::create_hard_link(files[0].path, files[i-1].path);
+                    cout << "Hard linked file \"" << files[i-1].path << "\" to "
+                            "file \"" << files[0].path << "\"\n";                    
+                }
+            }                
+        }
+        catch (const fs::filesystem_error &e)
+        {
+            cerr << e.what() << "\n\n";
+        }
+    }
+    cout << '\n';
+}
+
+/**
+ * Deal with the given duplicates using the given action.
+ */
+void deal_with_duplicates(Action action, 
                           const vector<DuplicateVector> &duplicates)
 {
-    const bool list = cl_args["list"].as<bool>();
-    const bool summarize = cl_args["summarize"].as<bool>();
-    const bool delete_no_prompt = 
-        (cl_args.count("delete") > 1 && cl_args["delete"].as<bool>())
-        ? true : false;
-
     if (duplicates.empty())
     {
         cout << "Didn't find any duplicates." << endl;
@@ -197,8 +226,9 @@ void deal_with_duplicates(const cxxopts::ParseResult &cl_args,
          << " set" << (duplicates.size() > 1 ? "s" : "") << ".\n"
          << format_bytes(duplicates_size) << " could be freed." << endl; 
 
-    if (list) // List found duplicates, don't prompt their deletion
+    switch (action)
     {
+    case Action::list:
         cout << '\n';
         for (const auto &dup_vec : duplicates)
         {
@@ -208,22 +238,29 @@ void deal_with_duplicates(const cxxopts::ParseResult &cl_args,
             }
             cout << endl;
         }
-    }
-    else if (summarize)
-    {
-        // Just the previously printed summary, don't prompt deletion
-    }    
-    else if (delete_no_prompt)
-    {
+        break;
+
+    case Action::no_prompt_delete:
         cout << '\n';
         for (const auto &dup_vec : duplicates)
         {
             vector<size_t> keep_only_first{1};
             remove_files(keep_only_first, dup_vec);
         }
-    }
-    else
-    {
+        break;
+
+    case Action::prompt_delete:
         prompt_duplicate_deletions(duplicates);
+        break;
+
+    case Action::hardlink:
+        for (const auto &dup_vec : duplicates)
+        {
+            hard_link_files(dup_vec);
+        }
+        break; 
+
+    default:
+        break;
     }
 }

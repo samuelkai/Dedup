@@ -3,7 +3,20 @@
 
 #include <filesystem>
 #include <string>
+#include <unordered_map>
+#include <variant>
 #include <vector>
+
+// Possible actions to take on duplicates
+enum class Action {prompt_delete, no_prompt_delete, hardlink, list, summarize};
+
+// Possible types for command line arguments
+using Arg = std::variant<
+    bool, int, uintmax_t, Action, std::vector<std::filesystem::path>
+>;
+
+// Container for retrieving command line arguments
+using ArgMap = std::unordered_map<std::string, Arg>;
 
 /**
  * Stores a file's path and last modification time. When the file is asked to be

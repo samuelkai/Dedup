@@ -1,7 +1,7 @@
 #ifndef PARSE_H
 #define PARSE_H
 
-#include "cxxopts/cxxopts.hpp"
+#include "utilities.h"
 
 /**
  * If this exception is thrown, the program should be terminated.
@@ -21,6 +21,6 @@ class EndException : public std::exception
 /**
  * Parse command line arguments.
  */
-cxxopts::ParseResult parse(int argc, char* argv[]);
+ArgMap parse(int argc, char* argv[]);
 
 #endif // PARSE_H

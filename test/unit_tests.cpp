@@ -1,10 +1,12 @@
 #include "find_duplicates.h"
 #include "catch2/catch.hpp"
 #include "parse.h"
+#include "utilities.h"
 
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <variant>
 #include <vector>
 
 using std::string;
@@ -27,15 +29,13 @@ TEST_CASE( "simple" )
 
     fs::resize_file(test_dir_path / "test3.txt", 100);
 
-    constexpr int argc = 2;
-    char* argv[] = {const_cast<char *>("dedup"), const_cast<char *>("-s")};
+    constexpr int argc = 3;
+    char* argv[] = {const_cast<char *>("dedup"), const_cast<char *>("-s"),
+                    const_cast<char *>(test_dir_path.c_str())};
 
-    const auto result = parse(argc, argv);
+    ArgMap cl_args = parse(argc, argv);
 
-    const std::vector<fs::path> paths_to_deduplicate = {test_dir_path};
-
-    const auto duplicates = 
-        find_duplicates<uint64_t>(result, paths_to_deduplicate);
+    const auto duplicates = find_duplicates<uint64_t>(cl_args);
 
     fs::remove_all(test_dir_path);
 
@@ -61,15 +61,13 @@ TEST_CASE( "simple2" )
 
     fs::copy_file(test_dir_path / "test3.txt", test_dir_path / "test4.txt");
 
-    constexpr int argc = 2;
-    char* argv[] = {const_cast<char *>("dedup"), const_cast<char *>("-s")};
+    constexpr int argc = 3;
+    char* argv[] = {const_cast<char *>("dedup"), const_cast<char *>("-s"),
+                    const_cast<char *>(test_dir_path.c_str())};
 
-    const auto result = parse(argc, argv);
+    ArgMap cl_args = parse(argc, argv);
 
-    const std::vector<fs::path> paths_to_deduplicate = {test_dir_path};
-
-    const auto duplicates = 
-        find_duplicates<uint64_t>(result, paths_to_deduplicate);
+    const auto duplicates = find_duplicates<uint64_t>(cl_args);
 
     fs::remove_all(test_dir_path);
 
@@ -106,15 +104,13 @@ TEST_CASE( "simple3" )
     outfile << "3";
     outfile.close();
 
-    constexpr int argc = 2;
-    char* argv[] = {const_cast<char *>("dedup"), const_cast<char *>("-s")};
+    constexpr int argc = 3;
+    char* argv[] = {const_cast<char *>("dedup"), const_cast<char *>("-s"),
+                    const_cast<char *>(test_dir_path.c_str())};
 
-    const auto result = parse(argc, argv);
+    ArgMap cl_args = parse(argc, argv);
 
-    const std::vector<fs::path> paths_to_deduplicate = {test_dir_path};
-
-    const auto duplicates = 
-        find_duplicates<uint64_t>(result, paths_to_deduplicate);
+    const auto duplicates = find_duplicates<uint64_t>(cl_args);
 
     fs::remove_all(test_dir_path);
 

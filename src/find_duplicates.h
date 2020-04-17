@@ -3,9 +3,6 @@
 
 #include "utilities.h"
 
-#include "cxxopts/cxxopts.hpp"
-
-#include <filesystem>
 #include <vector>
 
 /**
@@ -17,8 +14,6 @@
  * Returns a vector whose elements are vectors of duplicate files.
  */
 template <typename T>
-std::vector<DuplicateVector> find_duplicates(
-    const cxxopts::ParseResult &cl_args, 
-    const std::vector<std::filesystem::path> &paths_to_deduplicate);
+std::vector<DuplicateVector> find_duplicates(const ArgMap &cl_args);
 
 #endif // FIND_DUPLICATES_H

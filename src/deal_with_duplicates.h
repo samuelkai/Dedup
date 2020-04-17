@@ -3,15 +3,12 @@
 
 #include "utilities.h"
 
-#include "cxxopts/cxxopts.hpp"
-
 #include <vector>
 
 /**
- * Deal with the given duplicates according to the given parameters.
- * List, summarize or prompt for deletion.
+ * Deal with the given duplicates using the given action.
  */
-void deal_with_duplicates(const cxxopts::ParseResult &cl_args, 
+void deal_with_duplicates(Action action, 
     const std::vector<DuplicateVector> &duplicates);
 
 #endif // DEAL_WITH_DUPLICATES_H

@@ -1,11 +1,10 @@
 #include "find_duplicates.h"
 #include "utilities.h"
 
-#include "cxxopts/cxxopts.hpp"
-
 #include <filesystem>
 #include <iostream>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 using std::cout;
@@ -254,16 +253,15 @@ void scan_path(const fs::path &path, bool recurse, ScanManager &sm)
  * Returns a vector whose elements are vectors of duplicate files.
  */
 template <typename T>
-vector<DuplicateVector> find_duplicates(const cxxopts::ParseResult &cl_args, 
-    const std::vector<fs::path> &paths_to_deduplicate)
+vector<DuplicateVector> find_duplicates(const ArgMap &cl_args)
 {    
     // Start by scanning the paths for files
     FileSizeTable file_size_table;
     cout << "Counting number and size of files in given paths..." << endl;
     ScanManager cop = ScanManager(file_size_table);
     
-    const bool recurse = cl_args["recurse"].as<bool>();
-    for (const auto &path : paths_to_deduplicate)
+    const bool recurse = std::get<bool>(cl_args.at("recurse"));
+    for (const auto &path : std::get<vector<fs::path>>(cl_args.at("paths")))
     {
         try
         {
@@ -300,7 +298,7 @@ vector<DuplicateVector> find_duplicates(const cxxopts::ParseResult &cl_args,
             }
         }
 
-        cout << "Eliminated " << no_unique_file_sizes << " files with unique "
+        cout << "Discarded " << no_unique_file_sizes << " files with unique "
         "size from deduplication.\n";
     }
 
@@ -308,7 +306,7 @@ vector<DuplicateVector> find_duplicates(const cxxopts::ParseResult &cl_args,
 
     // Both are grouped by file size
     dedup_table.reserve(file_size_table.size());
-    const uintmax_t bytes = cl_args["bytes"].as<uintmax_t>();
+    const uintmax_t bytes = std::get<uintmax_t>(cl_args.at("bytes"));
 
     { // The deduplication
         DedupManager<T> iop = DedupManager<T>(dedup_table, 
@@ -350,14 +348,10 @@ vector<DuplicateVector> find_duplicates(const cxxopts::ParseResult &cl_args,
 }
 
 template vector<DuplicateVector> find_duplicates<uint8_t>(
-    const cxxopts::ParseResult &cl_args, 
-    const std::vector<fs::path> &paths_to_deduplicate);
+    const ArgMap &cl_args);
 template vector<DuplicateVector> find_duplicates<uint16_t>(
-    const cxxopts::ParseResult &cl_args, 
-    const std::vector<fs::path> &paths_to_deduplicate);
+    const ArgMap &cl_args);
 template vector<DuplicateVector> find_duplicates<uint32_t>(
-    const cxxopts::ParseResult &cl_args, 
-    const std::vector<fs::path> &paths_to_deduplicate);
+    const ArgMap &cl_args);
 template vector<DuplicateVector> find_duplicates<uint64_t>(
-    const cxxopts::ParseResult &cl_args, 
-    const std::vector<fs::path> &paths_to_deduplicate);
+    const ArgMap &cl_args);
