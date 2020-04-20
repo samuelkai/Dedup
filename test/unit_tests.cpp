@@ -29,11 +29,17 @@ TEST_CASE( "simple" )
 
     fs::resize_file(test_dir_path / "test3.txt", 100);
 
-    constexpr int argc = 3;
-    char* argv[] = {const_cast<char *>("dedup"), const_cast<char *>("-s"),
-                    const_cast<char *>(test_dir_path.c_str())};
+    std::vector<std::string> arguments = 
+        {"dedup", "-s", test_dir_path.string()};
 
-    ArgMap cl_args = parse(argc, argv);
+    std::vector<char*> argv;
+    for (auto& arg : arguments)
+        argv.push_back(arg.data());
+    argv.push_back(nullptr);
+
+    ArgMap cl_args = parse(argv.size() - 1, argv.data());
+
+    cl_args["paths"] = std::vector<fs::path>{test_dir_path};
 
     const auto duplicates = find_duplicates<uint64_t>(cl_args);
 
@@ -61,11 +67,15 @@ TEST_CASE( "simple2" )
 
     fs::copy_file(test_dir_path / "test3.txt", test_dir_path / "test4.txt");
 
-    constexpr int argc = 3;
-    char* argv[] = {const_cast<char *>("dedup"), const_cast<char *>("-s"),
-                    const_cast<char *>(test_dir_path.c_str())};
+    std::vector<std::string> arguments = 
+        {"dedup", "-s", test_dir_path.string()};
 
-    ArgMap cl_args = parse(argc, argv);
+    std::vector<char*> argv;
+    for (auto& arg : arguments)
+        argv.push_back(arg.data());
+    argv.push_back(nullptr);
+
+    ArgMap cl_args = parse(argv.size() - 1, argv.data());
 
     const auto duplicates = find_duplicates<uint64_t>(cl_args);
 
@@ -104,11 +114,15 @@ TEST_CASE( "simple3" )
     outfile << "3";
     outfile.close();
 
-    constexpr int argc = 3;
-    char* argv[] = {const_cast<char *>("dedup"), const_cast<char *>("-s"),
-                    const_cast<char *>(test_dir_path.c_str())};
+    std::vector<std::string> arguments = 
+        {"dedup", "-s", test_dir_path.string()};
 
-    ArgMap cl_args = parse(argc, argv);
+    std::vector<char*> argv;
+    for (auto& arg : arguments)
+        argv.push_back(arg.data());
+    argv.push_back(nullptr);
+
+    ArgMap cl_args = parse(argv.size() - 1, argv.data());
 
     const auto duplicates = find_duplicates<uint64_t>(cl_args);
 
