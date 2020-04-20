@@ -108,12 +108,25 @@ ArgMap parse(int argc, char* argv[])
                 "undefined which file is kept. Must be specified twice in "
                 "order to avoid accidental use.", 
                 cxxopts::value<bool>()->default_value("false"))
-            ("k,hardlink", "Hard link all duplicate files without prompting.",
+            ("k,hardlink", "Hard link all duplicate files (keep only one copy "
+                "of file contents) in each set of duplicates without "
+                "prompting. "
+                "Files in paths given earlier in the argument list have "
+                "higher precedence to be the target of the link (whose "
+                "metadata is kept). If there are duplicates in the same "
+                "folder, it is undefined which file is the target.",
                 cxxopts::value<bool>()->default_value("false"))
             ("l,list", "List found duplicates, don't prompt for deduplication", 
                 cxxopts::value<bool>()->default_value("false"))
             ("s,summarize", "Print only a summary of found duplicates, "
                 "don't prompt for deduplication",
+                cxxopts::value<bool>()->default_value("false"))
+            ("y,symlink", "Symlink all duplicate files (keep only one copy of "
+                "file contents) in each set of duplicates without prompting. "
+                "Files in paths given earlier in the argument list have "
+                "higher precedence to be the target of the link. If there are "
+                "duplicates in the same folder, it is undefined which file is "
+                "the target.",
                 cxxopts::value<bool>()->default_value("false"))
         ;
 
@@ -187,7 +200,8 @@ ArgMap parse(int argc, char* argv[])
         std::unordered_map<string, Action> actions = {
             {"hardlink", Action::hardlink}, 
             {"list", Action::list}, 
-            {"summarize", Action::summarize}
+            {"summarize", Action::summarize},
+            {"symlink", Action::symlink}
         };
 
         for (const auto &a : actions)
@@ -202,7 +216,7 @@ ArgMap parse(int argc, char* argv[])
                 else
                 {
                     cerr << "Only one action (delete, hardlink, list, "
-                            "summarize) can be specified\n";
+                            "summarize, symlink) can be specified\n";
                     throw EndException(1);
                 }
                 

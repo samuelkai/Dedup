@@ -102,7 +102,6 @@ void remove_files(const vector<size_t> &kept, const DuplicateVector &files)
  */
 void prompt_duplicate_deletions(const vector<DuplicateVector> &duplicates)
 {
-    cout << '\n';
     // For each set of duplicates
     for (const auto &dup_vec : duplicates)
     {
@@ -162,9 +161,11 @@ void prompt_duplicate_deletions(const vector<DuplicateVector> &duplicates)
 }
 
 /**
- * Hard links all given files to the first one.
+ * Remove all given files except the first one, and link the others to the
+ * first. Use hard link or symlink based on argument. 
+ * Original file names are kept.
  */
-void hard_link_files(const DuplicateVector &files)
+void link_files(const DuplicateVector &files, bool hard_link)
 {
     for (size_t i = 2; i <= files.size(); ++i)
     {
@@ -184,9 +185,19 @@ void hard_link_files(const DuplicateVector &files)
                 }
                 else
                 {
-                    fs::create_hard_link(files[0].path, files[i-1].path);
-                    cout << "Hard linked file \"" << files[i-1].path << "\" to "
-                            "file \"" << files[0].path << "\"\n";                    
+                    if (hard_link)
+                    {
+                        fs::create_hard_link(files[0].path, files[i-1].path);
+                        cout << "Hard linked file \"" << files[i-1].path 
+                             << "\" to file \"" << files[0].path << "\"\n";                    
+                    }
+                    else
+                    {
+                        fs::create_symlink(files[0].path, files[i-1].path);
+                        cout << "Symlinked file \"" << files[i-1].path 
+                             << "\" to file \"" << files[0].path << "\"\n"; 
+                    }
+                    
                 }
             }                
         }
@@ -250,15 +261,25 @@ void deal_with_duplicates(Action action,
         break;
 
     case Action::prompt_delete:
+        cout << '\n';
         prompt_duplicate_deletions(duplicates);
         break;
 
     case Action::hardlink:
+        cout << '\n';
         for (const auto &dup_vec : duplicates)
         {
-            hard_link_files(dup_vec);
+            link_files(dup_vec, true);
         }
-        break; 
+        break;
+
+    case Action::symlink:
+        cout << '\n';
+        for (const auto &dup_vec : duplicates)
+        {
+            link_files(dup_vec, false);
+        }
+        break;
 
     default:
         break;

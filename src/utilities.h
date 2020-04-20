@@ -8,7 +8,10 @@
 #include <vector>
 
 // Possible actions to take on duplicates
-enum class Action {prompt_delete, no_prompt_delete, hardlink, list, summarize};
+enum class Action
+{
+    prompt_delete, no_prompt_delete, hardlink, list, summarize, symlink
+};
 
 // Possible types for command line arguments
 using Arg = std::variant<
