@@ -2,6 +2,7 @@
 #include "utilities.h"
 
 #include <algorithm>
+#include <ctime>
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -161,49 +162,93 @@ void prompt_duplicate_deletions(const vector<DuplicateVector> &duplicates)
 }
 
 /**
- * Remove all given files except the first one, and link the others to the
- * first. Use hard link or symlink based on argument. 
- * Original file names are kept.
+ * Keep only one file in each set of duplicates and replace the others with 
+ * links to the one kept. Use hard link or symlink based on argument. Done in 
+ * three stages in order to enable error recovery.
  */
 void link_files(const DuplicateVector &files, bool hard_link)
 {
     for (size_t i = 2; i <= files.size(); ++i)
     {
+        fs::path target = files[0].path;
+        fs::path link = files[i-1].path;
+
+        fs::path temp_path = 
+            (fs::path(link)
+            += std::to_string(std::time(nullptr))) // seconds since the Epoch
+            += ".deduptemp";
+        
         try
         {
-            if (fs::last_write_time(files[i-1].path) > files[i-1].m_time)
+            if (fs::last_write_time(link) > files[i-1].m_time)
             {
-                cerr << "File \"" << files[i-1].path << "\" has been "
+                cerr << "File " << link << " has been "
                 "modified after it was scanned. Did not hard link it.\n";
             }
             else
             {
-                if (!fs::remove(files[i-1].path))
+                // First rename the duplicate to a temporary name
+                try
                 {
-                    cerr << "File \"" << files[i-1].path
-                            << "\" not found, could not delete it\n\n";
+                    fs::rename(link, temp_path);
                 }
-                else
+                catch(const fs::filesystem_error &e)
+                {
+                    cerr << "Linking failed: " << e.what() << '\n';
+                    continue;
+                }
+
+                // Then create the link
+                try
                 {
                     if (hard_link)
                     {
-                        fs::create_hard_link(files[0].path, files[i-1].path);
-                        cout << "Hard linked file \"" << files[i-1].path 
-                             << "\" to file \"" << files[0].path << "\"\n";                    
+                        fs::create_hard_link(target, link);
+                        cout << "Hard linked file " << link << " to file " 
+                            << target << '\n';                     
                     }
                     else
                     {
-                        fs::create_symlink(files[0].path, files[i-1].path);
-                        cout << "Symlinked file \"" << files[i-1].path 
-                             << "\" to file \"" << files[0].path << "\"\n"; 
+                        fs::create_symlink(target, link);
+                        cout << "Symlinked file " << link << " to file " 
+                            << target << '\n';               
                     }
-                    
+                }
+                catch(const fs::filesystem_error &e)
+                {
+                    cerr << "Linking failed: " << e.what() << '\n';
+                    // Recover the original name of the duplicate
+                    fs::rename(temp_path, link);
+                    continue;
+                }
+
+                // Finally remove the duplicate
+                try
+                {
+                    if (!fs::remove(temp_path))
+                    {
+                        cerr << "Linking failed: Could not delete duplicate\n";
+                        // Remove the created link
+                        fs::remove(link);
+                        // Recover the original name of the duplicate
+                        fs::rename(temp_path, link);
+                        continue;
+                    }
+                }
+                catch(const fs::filesystem_error &e)
+                {
+                    cerr << "Linking failed: " << e.what() << '\n';
+                    // Remove the created link
+                    fs::remove(link);
+                    // Recover the original name of the duplicate
+                    fs::rename(temp_path, link);
+                    continue;
                 }
             }                
         }
         catch (const fs::filesystem_error &e)
         {
-            cerr << e.what() << "\n\n";
+            cerr << "Linking failed: " << e.what() << '\n';
         }
     }
     cout << '\n';
