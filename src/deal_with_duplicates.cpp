@@ -257,8 +257,7 @@ void link_files(const DuplicateVector &files, bool hard_link)
 /**
  * Deal with the given duplicates using the given action.
  */
-void deal_with_duplicates(Action action, 
-                          const vector<DuplicateVector> &duplicates)
+void deal_with_duplicates(Action action, vector<DuplicateVector> duplicates)
 {
     if (duplicates.empty())
     {
@@ -268,19 +267,27 @@ void deal_with_duplicates(Action action,
 
     size_t number_of_duplicate_files = 0;
     uintmax_t duplicates_size = 0;
-    for (const auto &dup_vec : duplicates)
+    for (auto &dup_vec : duplicates)
     {
         // A set of n identical files has n - 1 duplicate files
         number_of_duplicate_files += dup_vec.size() - 1;
         duplicates_size += (dup_vec.size() - 1) 
             * fs::file_size(dup_vec[0].path);
+        
+        // Sort the duplicate vectors, file with oldest modification time first
+        std::sort(dup_vec.begin(), dup_vec.end(), 
+            [](const File &f1, const File &f2) 
+            {
+                return f1.m_time < f2.m_time;
+            }
+        );
     }
 
     cout << "Found " << number_of_duplicate_files
          << " duplicate file" << (number_of_duplicate_files > 1 ? "s" : "") 
          << " in " << duplicates.size() 
          << " set" << (duplicates.size() > 1 ? "s" : "") << ".\n"
-         << format_bytes(duplicates_size) << " could be freed." << endl; 
+         << format_bytes(duplicates_size) << " could be freed." << endl;     
 
     switch (action)
     {

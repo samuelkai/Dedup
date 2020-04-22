@@ -88,7 +88,7 @@ ArgMap parse(int argc, char* argv[])
         cxxopts::Options options(argv[0], " - find and delete duplicate files");
         options
             .positional_help("path1 [path2] [path3]...\nBy default, the user "
-            "is prompted to select which duplicates to delete.")
+            "is prompted to select which duplicates to keep.")
             .show_positional_help();
 
         // Positional argument that won't be printed in help
@@ -101,32 +101,35 @@ ArgMap parse(int argc, char* argv[])
         // displayed in help after the argument, as in "--bytes N".
 
         options.add_options("Action")
-            ("d,delete", "Delete duplicate files without prompting, keeping "
+            ("d,delete", "Without prompting, delete duplicate files, keeping "
                 "only one file in each set of duplicates. Files in paths given "
                 "earlier in the argument list have higher precedence to be "
-                "kept. If there are duplicates in the same folder, it is "
-                "undefined which file is kept. Must be specified twice in "
-                "order to avoid accidental use.", 
+                "kept. If there are duplicates in the same folder, the file "
+                "with the earliest modification time is kept. Must be "
+                "specified twice in order to avoid accidental use.", 
                 cxxopts::value<bool>()->default_value("false"))
-            ("k,hardlink", "Hard link all duplicate files (keep only one copy "
-                "of file contents) in each set of duplicates without "
-                "prompting. "
-                "Files in paths given earlier in the argument list have "
-                "higher precedence to be the target of the link (whose "
+
+            ("k,hardlink", "Without prompting, keep only one file in each set "
+                "of duplicates and replace the others with hard links to the "
+                "one kept. Files in paths given earlier in the argument list "
+                "have higher precedence to be the target of the link (whose "
                 "metadata is kept). If there are duplicates in the same "
-                "folder, it is undefined which file is the target.",
+                "folder, the file with the earliest modification time is the "
+                "target.",
                 cxxopts::value<bool>()->default_value("false"))
-            ("l,list", "List found duplicates, don't prompt for deduplication", 
+
+            ("l,list", "List found duplicates.", 
                 cxxopts::value<bool>()->default_value("false"))
-            ("s,summarize", "Print only a summary of found duplicates, "
-                "don't prompt for deduplication",
+
+            ("s,summarize", "Print only a summary of found duplicates.",
                 cxxopts::value<bool>()->default_value("false"))
-            ("y,symlink", "Symlink all duplicate files (keep only one copy of "
-                "file contents) in each set of duplicates without prompting. "
-                "Files in paths given earlier in the argument list have "
+
+            ("y,symlink", "Without prompting, keep only one file in each set "
+                "of duplicates and replace the others with symlinks to the one "
+                "kept. Files in paths given earlier in the argument list have "
                 "higher precedence to be the target of the link. If there are "
-                "duplicates in the same folder, it is undefined which file is "
-                "the target.",
+                "duplicates in the same folder, the file with the earliest "
+                "modification time is the target.",
                 cxxopts::value<bool>()->default_value("false"))
         ;
 
@@ -134,11 +137,14 @@ ArgMap parse(int argc, char* argv[])
             ("a,hash", "Hash digest size in bytes, valid values are " + 
                 hash_sizes_str, cxxopts::value<int>()->default_value(
                 std::to_string(DEFAULT_HASH_SIZE)), "N")
+
             ("b,bytes", "Number of bytes from the beginning of each file that "
                 "are used in hash calculation. "
                 "0 means that the whole file is hashed.",
                 cxxopts::value<uintmax_t>()->default_value("4096"), "N")
+
             ("h,help", "Print this help")
+
             ("r,recurse", "Search the paths for duplicates recursively",
                 cxxopts::value<bool>()->default_value("false"))
         ;
