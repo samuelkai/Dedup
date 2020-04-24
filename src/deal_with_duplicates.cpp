@@ -203,15 +203,11 @@ void link_files(const DuplicateVector &files, bool hard_link)
                 {
                     if (hard_link)
                     {
-                        fs::create_hard_link(target, link);
-                        cout << "Hard linked file " << link << " to file " 
-                            << target << '\n';                     
+                        fs::create_hard_link(target, link);      
                     }
                     else
                     {
-                        fs::create_symlink(target, link);
-                        cout << "Symlinked file " << link << " to file " 
-                            << target << '\n';               
+                        fs::create_symlink(target, link);  
                     }
                 }
                 catch(const fs::filesystem_error &e)
@@ -232,8 +228,10 @@ void link_files(const DuplicateVector &files, bool hard_link)
                         fs::remove(link);
                         // Recover the original name of the duplicate
                         fs::rename(temp_path, link);
-                        continue;
+                        continue;            
                     }
+                    cout << (hard_link ? "Hard " : "Sym") << "linked file " 
+                         << link << " to file " << target << '\n'; 
                 }
                 catch(const fs::filesystem_error &e)
                 {
