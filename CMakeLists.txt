@@ -19,19 +19,8 @@ add_compile_options(-Wall -Wextra -pedantic -Werror -Wshadow)
 #-------------------------------------------------
 
 
-# A library for xxHash
-#-------------------------------------------------
-add_library(xxH
-    ${THIRD_PARTY_DIR}/xxHash/xxhash.c
-)
-
-target_include_directories(xxH PRIVATE
-    ${THIRD_PARTY_DIR}
-)
-#-------------------------------------------------
-
-
 # A library for source files other than main
+# (to be linked to main and tests)
 #-------------------------------------------------
 add_library(Others
     ${SOURCE_DIR}/parse.cpp
@@ -46,7 +35,6 @@ target_include_directories(Others PRIVATE
 
 target_link_libraries(Others
     stdc++fs
-    xxH
 )
 #-------------------------------------------------
 

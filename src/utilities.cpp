@@ -1,3 +1,6 @@
+#define XXH_STATIC_LINKING_ONLY
+#define XXH_IMPLEMENTATION
+
 #include "utilities.h"
 #include "xxHash/xxhash.h"
 
@@ -112,18 +115,18 @@ uint64_t hash_file(const string &path, uintmax_t bytes)
     }
 
     // Based on example code from xxHash
-    XXH64_state_t* const state = XXH64_createState();
+    XXH3_state_t* const state = XXH3_createState();
     if (state==nullptr) {
-        XXH64_freeState(state);
+        XXH3_freeState(state);
         throw std::runtime_error("xxHash state creation error");
     }
 
     constexpr size_t buffer_size = 4096;
     char input_buffer[buffer_size];
 
-    const XXH_errorcode resetResult = XXH64_reset(state, 0);
+    const XXH_errorcode resetResult = XXH3_64bits_reset(state);
     if (resetResult == XXH_ERROR) {
-        XXH64_freeState(state);
+        XXH3_freeState(state);
         throw std::runtime_error("xxHash state initialization error");
     }
 
@@ -143,11 +146,11 @@ uint64_t hash_file(const string &path, uintmax_t bytes)
                 }
             }
             const auto count = istream.gcount();
-            const XXH_errorcode updateResult = XXH64_update(state,
+            const XXH_errorcode updateResult = XXH3_64bits_update(state,
                                                             input_buffer, 
                                                             count);
             if (updateResult == XXH_ERROR) {
-                XXH64_freeState(state);
+                XXH3_freeState(state);
                 throw std::runtime_error("xxHash result update error");
             }
         } while (istream);
@@ -176,20 +179,20 @@ uint64_t hash_file(const string &path, uintmax_t bytes)
             }
             const auto count = istream.gcount();
             bytes_read += count;
-            const XXH_errorcode updateResult = XXH64_update(state,
+            const XXH_errorcode updateResult = XXH3_64bits_update(state,
                                                             input_buffer, 
                                                             count);
             if (updateResult == XXH_ERROR) {
-                XXH64_freeState(state);
+                XXH3_freeState(state);
                 throw std::runtime_error("xxHash result update error");
             }
         } while (istream && bytes_read < bytes);
     }
     
     /* Get the hash */
-    const XXH64_hash_t hash = XXH64_digest(state);
+    const XXH64_hash_t hash = XXH3_64bits_digest(state);
 
-    XXH64_freeState(state);
+    XXH3_freeState(state);
     
     return (uint64_t)hash;
 }
