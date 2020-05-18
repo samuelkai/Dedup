@@ -258,14 +258,14 @@ vector<DuplicateVector> find_duplicates(const ArgMap &cl_args)
     // Start by scanning the paths for files
     FileSizeTable file_size_table;
     cout << "Counting number and size of files in given paths..." << endl;
-    ScanManager cop = ScanManager(file_size_table);
+    ScanManager sm = ScanManager(file_size_table);
     
     const bool recurse = std::get<bool>(cl_args.at("recurse"));
     for (const auto &path : std::get<vector<fs::path>>(cl_args.at("paths")))
     {
         try
         {
-            scan_path<T>(path, recurse, cop);
+            scan_path<T>(path, recurse, sm);
         }
         catch(const std::exception &e)
         {
@@ -274,27 +274,27 @@ vector<DuplicateVector> find_duplicates(const ArgMap &cl_args)
         
     }
     
-    const size_t total_count = cop.get_count();
-    const uintmax_t total_size = cop.get_size();
+    const size_t total_count = sm.get_count();
+    const uintmax_t total_size = sm.get_size();
     cout << "Counted " << total_count << " files occupying "
             << format_bytes(total_size) << "." << endl;
 
     { // Files with unique size can't have duplicates
-        FileSizeTable::iterator iter = file_size_table.begin();
-        FileSizeTable::iterator end_iter = file_size_table.end();
+        auto same_size_iter = file_size_table.begin();
+        auto end_iter = file_size_table.end();
 
         size_t no_unique_file_sizes = 0;
 
-        for(; iter != end_iter; )
+        for(; same_size_iter != end_iter; )
         {
-            if (iter->second.size() == 1)
+            if (same_size_iter->second.size() == 1) // Unique size
             {
-                iter = file_size_table.erase(iter);
+                same_size_iter = file_size_table.erase(same_size_iter);
                 ++no_unique_file_sizes;
             }
             else
             {
-                ++iter;
+                ++same_size_iter;
             }
         }
 
@@ -312,8 +312,8 @@ vector<DuplicateVector> find_duplicates(const ArgMap &cl_args)
         DedupManager<T> iop = DedupManager<T>(dedup_table, 
         bytes, total_count, total_count / 20);
 
-        FileSizeTable::iterator iter = file_size_table.begin();
-        FileSizeTable::iterator end_iter = file_size_table.end();
+        auto iter = file_size_table.begin();
+        auto end_iter = file_size_table.end();
 
         for (; iter != end_iter;)
         {
@@ -330,20 +330,25 @@ vector<DuplicateVector> find_duplicates(const ArgMap &cl_args)
     // Includes vectors of files whose whole content is the same
     vector<DuplicateVector> duplicates;
 
-    for (const auto &pair : dedup_table)
     {
-        for (const auto &inner_pair : pair.second)
+        auto same_size_iter = dedup_table.begin();
+        auto end_iter = dedup_table.end();
+
+        for (; same_size_iter != end_iter;)
         {
-            for (const auto &dup_vec : inner_pair.second)
+            for (const auto &same_hash : same_size_iter->second)
             {
-                if (dup_vec.size() > 1)
+                for (const auto &identicals : same_hash.second)
                 {
-                    duplicates.push_back(dup_vec);
+                    if (identicals.size() > 1)
+                    {
+                        duplicates.push_back(std::move(identicals));
+                    }
                 }
             }
+            same_size_iter = dedup_table.erase(same_size_iter);
         }
     }
-
     return duplicates;
 }
 
