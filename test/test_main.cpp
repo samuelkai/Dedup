@@ -10,11 +10,11 @@ struct MyListener : Catch::TestEventListenerBase {
     using TestEventListenerBase::TestEventListenerBase; // inherit constructor
     
     /**
-     * Remove temporary directory before test run 
+     * Remove temporary directory before test case
      * (possible remnant from failed test).
      */
-    void testRunStarting( Catch::TestRunInfo 
-        const& testRunInfo __attribute__((unused))) override
+    void testCaseStarting( Catch::TestCaseInfo 
+        const& testCaseInfo __attribute__((unused))) override
     {
         const fs::path test_dir_path = 
             fs::temp_directory_path() / "dedup_test98437524";
@@ -23,10 +23,10 @@ struct MyListener : Catch::TestEventListenerBase {
     }
 
     /**
-     * Remove temporary directory after test run.
+     * Remove temporary directory after test case.
      */
-    void testRunEnded(Catch::TestRunStats 
-        const& testRunStats __attribute__((unused))) override
+    void testCaseEnded(Catch::TestCaseStats 
+        const& testCaseStats __attribute__((unused))) override
     {
         const fs::path test_dir_path = 
             fs::temp_directory_path() / "dedup_test98437524";

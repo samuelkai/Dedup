@@ -80,24 +80,24 @@ target_include_directories(test_main PRIVATE
 #-------------------------------------------------
 
 
-# The actual unit tests
+# The actual tests
 #-------------------------------------------------
-add_executable(unit_tests
-    ${TEST_DIR}/unit_tests.cpp
+add_executable(tests
+    ${TEST_DIR}/tests.cpp
     $<TARGET_OBJECTS:test_main>
 )
 
-target_include_directories(unit_tests PRIVATE
+target_include_directories(tests PRIVATE
     ${SOURCE_DIR}
     ${THIRD_PARTY_DIR}
 )
 
-target_link_libraries(unit_tests
+target_link_libraries(tests
     Catch
     Others
 )
 
 enable_testing()
 
-add_test(test_all unit_tests)
+add_test(test_all tests)
 #-------------------------------------------------

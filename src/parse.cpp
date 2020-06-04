@@ -88,7 +88,8 @@ ArgMap parse(int argc, char* argv[])
         cxxopts::Options options(argv[0], " - find and delete duplicate files");
         options
             .positional_help("path1 [path2] [path3]...\nBy default, the user "
-            "is prompted to select which duplicates to keep.")
+            "is prompted to select which duplicates to keep.\nSymbolic links "
+            "are skipped and hard links are treated as duplicates.")
             .show_positional_help();
 
         // Positional argument that won't be printed in help

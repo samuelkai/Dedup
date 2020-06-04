@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------------
-This program finds duplicate files, i.e. files with identical content.
+This program finds duplicate files, i.e., files with identical content.
 ------------------------------------------------------------------------------*/
 
 #include "deal_with_duplicates.h"
