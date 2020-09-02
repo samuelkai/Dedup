@@ -217,3 +217,40 @@ string format_bytes(uintmax_t bytes)
     out << std::fixed << dbl_bytes << " " << prefixes[i] << "bytes";
     return out.str();
 }
+
+ContentArray read_file_beginning(const string &path)
+{
+    std::fstream f1;
+    try
+    {
+        f1.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+        f1.open(path, std::ios::binary|std::ifstream::in);
+    }
+    catch(const std::ios_base::failure &e)
+    {
+        throw FileException(e.code());
+    }
+
+    ContentArray input_buffer;
+    try
+    {
+        f1.read(input_buffer.data(), beginning_size);
+    }
+    catch(const std::ios_base::failure &e)
+    {
+        if (!f1.eof())
+        {
+            throw FileException(e.code());
+        }
+        else if (f1.gcount() < static_cast<std::streamsize>(beginning_size))
+        {
+            // Pad with zeros
+            for (size_t i = f1.gcount(); i < beginning_size; i++)
+            {
+                input_buffer[i] = 0;
+            }
+        }
+        
+    }
+    return input_buffer;
+}

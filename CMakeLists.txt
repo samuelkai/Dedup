@@ -24,7 +24,9 @@ add_compile_options(-Wall -Wextra -pedantic -Werror -Wshadow)
 #-------------------------------------------------
 add_library(Others
     ${SOURCE_DIR}/parse.cpp
-    ${SOURCE_DIR}/find_duplicates.cpp
+    ${SOURCE_DIR}/find_duplicates_map.cpp
+    ${SOURCE_DIR}/find_duplicates_vector.cpp
+    ${SOURCE_DIR}/find_duplicates_vector_no_hash.cpp
     ${SOURCE_DIR}/deal_with_duplicates.cpp
     ${SOURCE_DIR}/utilities.cpp
 )

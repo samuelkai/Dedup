@@ -1,6 +1,8 @@
 #include "find_duplicates.h"
 #include "utilities.h"
 
+#include <algorithm>
+#include <csignal>
 #include <filesystem>
 #include <iostream>
 #include <unordered_map>
@@ -15,111 +17,86 @@ using std::vector;
 
 namespace fs = std::filesystem;
 
-/**
- * Stores Files, their sizes and hashes of file contents.
- * The key of the outer map is file size.
- * The key of the inner map is the hash of the beginning N bytes of a file,
- * where N is a program argument.
- * The key type T is one of {uint8_t, uint16_t, uint32_t, uint64_t}.
- * The value of the inner map contains the paths of all files that produce the 
- * same hash. Because files can differ after the first N bytes, the outer vector
- * contains inner vectors that contain Files whose whole content is the same.
- */
-template <typename T>
-using DedupTable = std::unordered_map<
-    uintmax_t,
-    std::unordered_map<
-        T,
-        vector<DuplicateVector>
-    >
->;
+using DedupVector = std::vector<
+                        std::pair<
+                            ContentArray,
+                            File
+                        >
+                    >;
 
 /**
  * Stores Files grouped by their size. Used during the file scanning phase.
  */
 using FileSizeTable = std::unordered_map<uintmax_t, vector<File>>;
 
-/**
- * Checks the given vector of duplicate file vectors for a file that has the
- * same content as the file in the given path. If found, inserts the path
- * to the duplicate file vector and returns true.
- */ 
-bool find_duplicate_file(const File &file,
-                         vector<DuplicateVector> &vec_vec)
+std::size_t index_of_file(DedupVector &vec, string path)
 {
-    // vec_vec contains Files that have the same hash
-    // dup_vec contains Files whose whole content is the same
-    for (auto &dup_vec: vec_vec)
+    for (size_t i = 0; i < vec.size(); i++)
     {
-        try
+        if (vec[i].second.path == path)
         {
-            if (compare_files(file.path, dup_vec[0].path))
-            {
-                // Identical to the files in dup_vec
-                dup_vec.push_back(file);
-                return true;
-            }
+            return i;
         }
-        catch(const FileException &e)
-        {
-            // By catching here we can compare to the other elements of dup_vec
-            cerr << e.what() << '\n';
-        }                           
     }
-    return false;
+    return std::numeric_limits<std::size_t>::max(); 
+}
+
+DuplicateVector find_duplicate_file(string path, DedupVector &same_hashes)
+{
+    DuplicateVector dup_vec;
+    for (auto curr = same_hashes.begin(); curr != same_hashes.end();)
+    {
+        if (compare_files(path, curr->second.path))
+        {
+            dup_vec.push_back(curr->second);
+            curr = same_hashes.erase(curr);
+        }
+        else
+        {
+            ++curr;
+        }
+        
+    }
+    return dup_vec;
+
 }
 
 /**
  * Inserts the given File into the deduplication table.
  */
-template <typename T>
-void insert_into_dedup_table(const File &file, uintmax_t size,
-                             DedupTable<T> &dedup_table, uintmax_t bytes)
+void insert_into_dedup_table(const File &file, 
+                             DedupVector &dedup_vector)
 {   
     // Calculate the hash and truncate it to the specified length
-    const auto hash = static_cast<T>(hash_file(file.path, bytes));
-
-    vector<DuplicateVector> &vec_vec = dedup_table[size][hash];
-
-    if (vec_vec.empty()) // First file that produces this hash
-    {
-        vec_vec.push_back(
-            vector<File>{file});
-    }
-    else
-    {
-        if (!find_duplicate_file(
-            file, vec_vec))
-        {
-            // File differs from others with the same hash
-            vec_vec.push_back(
-                vector<File>{file});
-        }
-    }
+    const ContentArray content = read_file_beginning(file.path);
+    dedup_vector.push_back(std::make_pair(content, file));
 }
+
+class DedupManager;
+
+void print_progress(DedupManager &op);
 
 /**
  * Manages the deduplication. Stores progress information and inserts Files to
  * dedup_table.
  */
-template <typename T>
 class DedupManager {
-        DedupTable<T> &dedup_table;
+        DedupVector &dedup_vector;
         const uintmax_t bytes;
         size_t current_count;
         const size_t total_count;
         const size_t step_size;
     
     public:
-        DedupManager(DedupTable<T> &d, uintmax_t b, size_t t_c, size_t s_s)
-            : dedup_table(d), bytes(b), current_count(0), total_count(t_c), 
+        DedupManager(DedupVector &d, uintmax_t b, size_t t_c, size_t s_s)
+            : dedup_vector(d), bytes(b), current_count(0), total_count(t_c), 
               step_size( s_s == 0 ? 1 : s_s ) {}; // Prevent zero step size
 
-        void insert(const File &file, uintmax_t size)
+        void insert(const File &file)
         {
             try
             {
-                insert_into_dedup_table(file, size, dedup_table, bytes);
+                insert_into_dedup_table(file, dedup_vector);
             }
             catch(const fs::filesystem_error &e)
             {
@@ -142,6 +119,23 @@ class DedupManager {
         size_t get_step_size() const {return step_size;}
 };
 
+/**
+ * Prints the progress on finding duplicates.
+ */
+void print_progress(DedupManager &op) {
+    const size_t curr_f_cnt = op.get_current_count();
+    const size_t tot_f_cnt = op.get_total_count();
+    const size_t step_size = op.get_step_size();
+
+    if (step_size > 0 && curr_f_cnt % step_size == 0)
+    {
+        const float progress = static_cast<float>(curr_f_cnt) 
+            / static_cast<float>(tot_f_cnt);
+        cout << "\r" << "File " << curr_f_cnt << "/" << tot_f_cnt 
+            << " (" << int(progress * 100.0) << " %)";
+        cout.flush();
+    }
+}
 
 /**
  * Manages the scanning that is done before deduplication. Files are counted and
@@ -193,29 +187,9 @@ class ScanManager {
 };
 
 /**
- * Prints the progress on finding duplicates.
- */
-template <typename T>
-void print_progress(DedupManager<T> &op) {
-    const size_t curr_f_cnt = op.get_current_count();
-    const size_t tot_f_cnt = op.get_total_count();
-    const size_t step_size = op.get_step_size();
-
-    if (step_size > 0 && curr_f_cnt % step_size == 0)
-    {
-        const float progress = static_cast<float>(curr_f_cnt) 
-            / static_cast<float>(tot_f_cnt);
-        cout << "\r" << "File " << curr_f_cnt << "/" << tot_f_cnt 
-            << " (" << int(progress * 100.0) << " %)";
-        cout.flush();
-    }
-}
-
-/**
  * Traverses the given path and collects information about files.
  * Directories are traversed recursively if wanted.
  */
-template <typename T>
 void scan_path(const fs::path &path, bool recurse, ScanManager &sm)
 {
     if (fs::is_directory(path))
@@ -244,6 +218,12 @@ void scan_path(const fs::path &path, bool recurse, ScanManager &sm)
     }
 }
 
+bool sort_only_by_first(const std::pair<ContentArray, File> &a, 
+                        const std::pair<ContentArray, File> &b) 
+{ 
+    return (a.first < b.first);
+} 
+
 /**
  * Finds duplicate files from the given paths.
  * 
@@ -252,8 +232,7 @@ void scan_path(const fs::path &path, bool recurse, ScanManager &sm)
  * 
  * Returns a vector whose elements are vectors of duplicate files.
  */
-template <typename T>
-vector<DuplicateVector> find_duplicates(const ArgMap &cl_args)
+vector<DuplicateVector> find_duplicates_vector_no_hash(const ArgMap &cl_args)
 {    
     // Start by scanning the paths for files
     FileSizeTable file_size_table;
@@ -265,7 +244,7 @@ vector<DuplicateVector> find_duplicates(const ArgMap &cl_args)
     {
         try
         {
-            scan_path<T>(path, recurse, sm);
+            scan_path(path, recurse, sm);
         }
         catch(const std::exception &e)
         {
@@ -279,11 +258,11 @@ vector<DuplicateVector> find_duplicates(const ArgMap &cl_args)
     cout << "Counted " << total_count << " files occupying "
             << format_bytes(total_size) << "." << endl;
 
+    size_t no_unique_file_sizes = 0;
+
     { // Files with unique size can't have duplicates
         auto same_size_iter = file_size_table.begin();
         auto end_iter = file_size_table.end();
-
-        size_t no_unique_file_sizes = 0;
 
         for(; same_size_iter != end_iter; )
         {
@@ -302,14 +281,17 @@ vector<DuplicateVector> find_duplicates(const ArgMap &cl_args)
         "size from deduplication.\n";
     }
 
-    DedupTable<T> dedup_table;
+    // DedupTable<T> dedup_table;
 
     // Both are grouped by file size
-    dedup_table.reserve(file_size_table.size());
+    // dedup_table.reserve(file_size_table.size());
     const uintmax_t bytes = std::get<uintmax_t>(cl_args.at("bytes"));
 
+    DedupVector dedup_vector;
+    dedup_vector.reserve(total_count - no_unique_file_sizes);
+
     { // The deduplication
-        DedupManager<T> iop = DedupManager<T>(dedup_table, 
+        DedupManager iop = DedupManager(dedup_vector, 
         bytes, total_count, total_count / 20);
 
         auto iter = file_size_table.begin();
@@ -319,44 +301,42 @@ vector<DuplicateVector> find_duplicates(const ArgMap &cl_args)
         {
             for (const auto &file : iter->second)
             {
-                iop.insert(file, iter->first);
+                // if (file.path == "/home/samuel/Koodi/linux-5.5.10/tools/perf/pmu-events/arch/x86/westmereep-dp/pipeline.json" || file.path == "/home/samuel/Koodi/linux-5.5.10/tools/perf/pmu-events/arch/x86/westmereep-sp/pipeline.json") 
+                // {
+                //     std::raise(SIGINT);
+                // }
+                iop.insert(file);
             }
             iter = file_size_table.erase(iter);
         }
+
+        std::sort(dedup_vector.begin(), dedup_vector.end(), 
+            sort_only_by_first);
     }
 
     cout << "\r" << "Done checking.                             " << endl;
 
     // Includes vectors of files whose whole content is the same
     vector<DuplicateVector> duplicates;
-
     {
-        auto same_size_iter = dedup_table.begin();
-        auto end_iter = dedup_table.end();
+        auto iter = dedup_vector.begin();
+        const auto end_iter = dedup_vector.end();
 
-        for (; same_size_iter != end_iter;)
+        for (; iter != end_iter;)
         {
-            for (const auto &same_hash : same_size_iter->second)
+            // auto indeksi __attribute__((unused)) = index_of_file<T>(dedup_vector, "/home/samuel/Koodi/linux-5.5.10/tools/perf/pmu-events/arch/x86/westmereep-sp/pipeline.json");
+            std::pair<typename DedupVector::iterator, typename DedupVector::iterator> bounds = std::equal_range(iter, end_iter, *iter, sort_only_by_first);
+            DedupVector same_hashes = vector(bounds.first, bounds.second);
+            while (same_hashes.size() > 1)
             {
-                for (const auto &identicals : same_hash.second)
+                auto identicals = find_duplicate_file(same_hashes[0].second.path, same_hashes);
+                if (identicals.size() > 1)
                 {
-                    if (identicals.size() > 1)
-                    {
-                        duplicates.push_back(std::move(identicals));
-                    }
+                    duplicates.push_back(std::move(identicals));
                 }
             }
-            same_size_iter = dedup_table.erase(same_size_iter);
+            iter = bounds.second;
         }
     }
     return duplicates;
 }
-
-template vector<DuplicateVector> find_duplicates<uint8_t>(
-    const ArgMap &cl_args);
-template vector<DuplicateVector> find_duplicates<uint16_t>(
-    const ArgMap &cl_args);
-template vector<DuplicateVector> find_duplicates<uint32_t>(
-    const ArgMap &cl_args);
-template vector<DuplicateVector> find_duplicates<uint64_t>(
-    const ArgMap &cl_args);

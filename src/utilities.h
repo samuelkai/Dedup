@@ -21,6 +21,9 @@ using Arg = std::variant<
 // Container for retrieving command line arguments
 using ArgMap = std::unordered_map<std::string, Arg>;
 
+constexpr size_t beginning_size = 4096;
+using ContentArray = std::array<char, beginning_size>; 
+
 /**
  * Stores a file's path and last modification time. When the file is asked to be
  * deleted, the time is used to check if the file has been modified after it has
@@ -64,5 +67,7 @@ uint64_t hash_file(const std::string &path, uintmax_t bytes);
  * Formats the given bytes as a string with a binary prefix.
  */
 std::string format_bytes(uintmax_t bytes);
+
+ContentArray read_file_beginning(const std::string &path);
 
 #endif // UTILITIES_H

@@ -5,6 +5,14 @@
 
 #include <vector>
 
+template <typename T>
+std::vector<DuplicateVector> find_duplicates_map(const ArgMap &cl_args);
+
+template <typename T>
+std::vector<DuplicateVector> find_duplicates_vector(const ArgMap &cl_args);
+
+std::vector<DuplicateVector> find_duplicates_vector_no_hash(const ArgMap &cl_args);
+
 /**
  * Finds duplicate files from the given paths.
  * 
@@ -13,7 +21,9 @@
  * 
  * Returns a vector whose elements are vectors of duplicate files.
  */
-template <typename T>
-std::vector<DuplicateVector> find_duplicates(const ArgMap &cl_args);
+inline std::vector<DuplicateVector> find_duplicates(const ArgMap &cl_args)
+{
+    return find_duplicates_vector_no_hash(cl_args);
+}
 
 #endif // FIND_DUPLICATES_H
