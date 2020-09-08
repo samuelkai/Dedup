@@ -24,19 +24,19 @@ int main(int argc, char *argv[])
         {
         case 1:
             deal_with_duplicates(
-                action, std::move(find_duplicates(cl_args)));
+                action, std::move(find_duplicates<uint8_t>(cl_args)));
             break;
         case 2:
             deal_with_duplicates(
-                action, std::move(find_duplicates(cl_args)));
+                action, std::move(find_duplicates<uint16_t>(cl_args)));
             break;
         case 4:
             deal_with_duplicates(
-                action, std::move(find_duplicates(cl_args)));
+                action, std::move(find_duplicates<uint32_t>(cl_args)));
             break;
         default:
             deal_with_duplicates(
-                action, std::move(find_duplicates(cl_args)));
+                action, std::move(find_duplicates<uint64_t>(cl_args)));
             break;
         }
     }

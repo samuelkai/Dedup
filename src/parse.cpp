@@ -146,7 +146,19 @@ ArgMap parse(int argc, char* argv[])
 
             ("h,help", "Print this help")
 
+            ("n,no-hash", "In the initial comparison step, use file contents "
+                "instead of hash digests. Doesn't affect the result of the "
+                "program. Implies the argument 'vector', and is mutually "
+                "exclusive with it.",
+                cxxopts::value<bool>()->default_value("false"))
+
             ("r,recurse", "Search the paths for duplicates recursively",
+                cxxopts::value<bool>()->default_value("false"))
+
+            ("v,vector", "Use a vector instead of an unordered map to store "
+                "the candidates for deduplication. Doesn't affect the result " 
+                "of the program. Mutually exclusive with the argument "
+                "'no_hash'.",
                 cxxopts::value<bool>()->default_value("false"))
         ;
 
@@ -195,8 +207,8 @@ ArgMap parse(int argc, char* argv[])
         case 0:
             break;
         case 1:
-            cerr << "Argument delete must be specified twice in order to avoid "
-            "accidental use.\n";
+            cerr << "Argument 'delete' must be specified twice in order to "
+            "avoid accidental use.\n";
             throw EndException(1);
         default:
             cl_args["action"] = Action::no_prompt_delete;
@@ -238,7 +250,7 @@ ArgMap parse(int argc, char* argv[])
             if (std::find(hash_sizes.begin(), hash_sizes.end(), size)
                 == hash_sizes.end())
             {
-                cerr << "Invalid argument hash: must be one of "
+                cerr << "Invalid argument 'hash': must be one of "
                      << hash_sizes_str << '\n';
                 throw EndException(1);
             }
@@ -247,6 +259,16 @@ ArgMap parse(int argc, char* argv[])
         
         cl_args["bytes"] = result["bytes"].as<uintmax_t>();
         cl_args["recurse"] = result.count("recurse") > 0 ? true : false;
+        cl_args["no_hash"] = result.count("no_hash") > 0 ? true : false;
+        cl_args["vector"] = result.count("vector") > 0 ? true : false;
+        if (std::get<bool>(cl_args.at("no_hash")) && 
+            std::get<bool>(cl_args.at("vector")))
+        {
+            cerr << "Only one of arguments 'no_hash' and 'vector' can be "
+                    "specified." << '\n';
+            throw EndException(1);
+        }
+        
 
         return cl_args;
     }

@@ -11,7 +11,8 @@ std::vector<DuplicateVector> find_duplicates_map(const ArgMap &cl_args);
 template <typename T>
 std::vector<DuplicateVector> find_duplicates_vector(const ArgMap &cl_args);
 
-std::vector<DuplicateVector> find_duplicates_vector_no_hash(const ArgMap &cl_args);
+std::vector<DuplicateVector> find_duplicates_vector_no_hash(
+                                const ArgMap &cl_args);
 
 /**
  * Finds duplicate files from the given paths.
@@ -21,9 +22,21 @@ std::vector<DuplicateVector> find_duplicates_vector_no_hash(const ArgMap &cl_arg
  * 
  * Returns a vector whose elements are vectors of duplicate files.
  */
+template <typename T>
 inline std::vector<DuplicateVector> find_duplicates(const ArgMap &cl_args)
 {
-    return find_duplicates_vector_no_hash(cl_args);
+    if (std::get<bool>(cl_args.at("no_hash")))
+    {
+        return find_duplicates_vector_no_hash(cl_args);
+    }
+    else if (std::get<bool>(cl_args.at("vector")))
+    {
+        return find_duplicates_vector<T>(cl_args);
+    }
+    else
+    {
+        return find_duplicates_map<T>(cl_args);
+    }
 }
 
 #endif // FIND_DUPLICATES_H

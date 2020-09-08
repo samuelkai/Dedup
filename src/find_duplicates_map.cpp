@@ -215,31 +215,34 @@ void print_progress(DedupManager<T> &op) {
  * Traverses the given path and collects information about files.
  * Directories are traversed recursively if wanted.
  */
-void scan_path(const fs::path &path, bool recurse, ScanManager &sm)
+namespace
 {
-    if (fs::is_directory(path))
+    void scan_path(const fs::path &path, bool recurse, ScanManager &sm)
     {
-        // Directories that cannot be accessed are skipped
-        if (recurse)
+        if (fs::is_directory(path))
         {
-            for (const auto &p : fs::recursive_directory_iterator(path, 
-                fs::directory_options::skip_permission_denied))
+            // Directories that cannot be accessed are skipped
+            if (recurse)
             {
-                sm.insert(p);
+                for (const auto &p : fs::recursive_directory_iterator(path, 
+                    fs::directory_options::skip_permission_denied))
+                {
+                    sm.insert(p);
+                }
+            }
+            else
+            {
+                for (const auto &p : fs::directory_iterator(path, 
+                    fs::directory_options::skip_permission_denied))
+                {
+                    sm.insert(p);
+                }
             }
         }
         else
         {
-            for (const auto &p : fs::directory_iterator(path, 
-                fs::directory_options::skip_permission_denied))
-            {
-                sm.insert(p);
-            }
+            sm.insert(fs::directory_entry(path));
         }
-    }
-    else
-    {
-        sm.insert(fs::directory_entry(path));
     }
 }
 

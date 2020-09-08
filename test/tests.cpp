@@ -70,7 +70,7 @@ TEST_CASE( "test_delete" )
 
     ArgMap cl_args = parse_cl_args(arguments);
 
-    const auto duplicates = find_duplicates(cl_args);
+    const auto duplicates = find_duplicates<uint64_t>(cl_args);
 
     deal_with_duplicates(Action::no_prompt_delete, duplicates);
 
@@ -93,7 +93,7 @@ TEST_CASE( "test_hardlink" )
 
     ArgMap cl_args = parse_cl_args(arguments);
 
-    const auto duplicates = find_duplicates(cl_args);
+    const auto duplicates = find_duplicates<uint64_t>(cl_args);
 
     deal_with_duplicates(Action::hardlink, duplicates);
 
@@ -118,7 +118,7 @@ TEST_CASE( "test_symlink" )
 
     ArgMap cl_args = parse_cl_args(arguments);
 
-    const auto duplicates = find_duplicates(cl_args);
+    const auto duplicates = find_duplicates<uint64_t>(cl_args);
 
     deal_with_duplicates(Action::symlink, duplicates);
 
@@ -155,7 +155,7 @@ TEST_CASE( "test_priority_dir" )
 
     ArgMap cl_args = parse_cl_args(arguments);
 
-    const auto duplicates = find_duplicates(cl_args);
+    const auto duplicates = find_duplicates<uint64_t>(cl_args);
 
     deal_with_duplicates(Action::no_prompt_delete, duplicates);
 
@@ -193,7 +193,7 @@ TEST_CASE( "test_priority_age" )
 
     ArgMap cl_args = parse_cl_args(arguments);
 
-    const auto duplicates = find_duplicates(cl_args);
+    const auto duplicates = find_duplicates<uint64_t>(cl_args);
 
     deal_with_duplicates(Action::no_prompt_delete, duplicates);
 
@@ -218,7 +218,7 @@ TEST_CASE( "test_same_path_skip" )
 
     ArgMap cl_args = parse_cl_args(arguments);
 
-    const auto duplicates = find_duplicates(cl_args);
+    const auto duplicates = find_duplicates<uint64_t>(cl_args);
 
     deal_with_duplicates(Action::no_prompt_delete, duplicates);
 
@@ -240,7 +240,7 @@ TEST_CASE( "test_symlink_inside_dir_skip" )
 
     ArgMap cl_args = parse_cl_args(arguments);
 
-    const auto duplicates = find_duplicates(cl_args);
+    const auto duplicates = find_duplicates<uint64_t>(cl_args);
 
     deal_with_duplicates(Action::no_prompt_delete, duplicates);
 
@@ -264,7 +264,7 @@ TEST_CASE( "test_symlink_as_given_path_skip" )
 
     ArgMap cl_args = parse_cl_args(arguments);
 
-    const auto duplicates = find_duplicates(cl_args);
+    const auto duplicates = find_duplicates<uint64_t>(cl_args);
 
     deal_with_duplicates(Action::no_prompt_delete, duplicates);
 
@@ -290,7 +290,7 @@ TEST_CASE( "test_recursive" )
 
     ArgMap cl_args = parse_cl_args(arguments);
 
-    const auto duplicates = find_duplicates(cl_args);
+    const auto duplicates = find_duplicates<uint64_t>(cl_args);
     
     deal_with_duplicates(Action::no_prompt_delete, duplicates);
 
@@ -317,7 +317,7 @@ TEST_CASE( "test_not_recursive" )
 
     ArgMap cl_args = parse_cl_args(arguments);
 
-    const auto duplicates = find_duplicates(cl_args);
+    const auto duplicates = find_duplicates<uint64_t>(cl_args);
     
     deal_with_duplicates(Action::no_prompt_delete, duplicates);
 

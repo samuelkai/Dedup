@@ -193,31 +193,34 @@ void print_progress(DedupManager<T> &op) {
  * Traverses the given path and collects information about files.
  * Directories are traversed recursively if wanted.
  */
-void scan_path(const fs::path &path, bool recurse, ScanManager &sm)
+namespace
 {
-    if (fs::is_directory(path))
+    void scan_path(const fs::path &path, bool recurse, ScanManager &sm)
     {
-        // Directories that cannot be accessed are skipped
-        if (recurse)
+        if (fs::is_directory(path))
         {
-            for (const auto &p : fs::recursive_directory_iterator(path, 
-                fs::directory_options::skip_permission_denied))
+            // Directories that cannot be accessed are skipped
+            if (recurse)
             {
-                sm.insert(p);
+                for (const auto &p : fs::recursive_directory_iterator(path, 
+                    fs::directory_options::skip_permission_denied))
+                {
+                    sm.insert(p);
+                }
+            }
+            else
+            {
+                for (const auto &p : fs::directory_iterator(path, 
+                    fs::directory_options::skip_permission_denied))
+                {
+                    sm.insert(p);
+                }
             }
         }
         else
         {
-            for (const auto &p : fs::directory_iterator(path, 
-                fs::directory_options::skip_permission_denied))
-            {
-                sm.insert(p);
-            }
+            sm.insert(fs::directory_entry(path));
         }
-    }
-    else
-    {
-        sm.insert(fs::directory_entry(path));
     }
 }
 
@@ -306,10 +309,6 @@ vector<DuplicateVector> find_duplicates_vector(const ArgMap &cl_args)
         {
             for (const auto &file : iter->second)
             {
-                // if (file.path == "/home/samuel/Koodi/linux-5.5.10/tools/perf/pmu-events/arch/x86/westmereep-dp/pipeline.json" || file.path == "/home/samuel/Koodi/linux-5.5.10/tools/perf/pmu-events/arch/x86/westmereep-sp/pipeline.json") 
-                // {
-                //     std::raise(SIGINT);
-                // }
                 iop.insert(file);
             }
             iter = file_size_table.erase(iter);
@@ -324,23 +323,28 @@ vector<DuplicateVector> find_duplicates_vector(const ArgMap &cl_args)
     // Includes vectors of files whose whole content is the same
     vector<DuplicateVector> duplicates;
     {
-        auto iter = dedup_vector.begin();
-        const auto end_iter = dedup_vector.end();
-
-        for (; iter != end_iter;)
+        while (!dedup_vector.empty())
         {
-            // auto indeksi __attribute__((unused)) = index_of_file<T>(dedup_vector, "/home/samuel/Koodi/linux-5.5.10/tools/perf/pmu-events/arch/x86/westmereep-sp/pipeline.json");
-            std::pair<typename DedupVector<T>::iterator, typename DedupVector<T>::iterator> bounds = std::equal_range(iter, end_iter, *iter, sort_only_by_first<T>);
-            vector<std::pair<T, File>> same_hashes = vector(bounds.first, bounds.second);
+            const auto &current = dedup_vector.end() - 1;
+
+            std::pair<typename DedupVector<T>::iterator, 
+                      typename DedupVector<T>::iterator>
+            bounds = std::equal_range(dedup_vector.begin(), dedup_vector.end(), 
+                                      *current, sort_only_by_first<T>);
+
+            DedupVector<T> same_hashes = vector(bounds.first, bounds.second);
+
             while (same_hashes.size() > 0)
             {
-                auto identicals = find_duplicate_file<T>(same_hashes[0].second.path, same_hashes);
+                auto identicals = find_duplicate_file<T>(
+                    same_hashes[0].second.path, same_hashes);
                 if (identicals.size() > 1)
                 {
                     duplicates.push_back(std::move(identicals));
                 }
             }
-            iter = bounds.second;
+
+            dedup_vector.erase(bounds.first, bounds.second);
         }
     }
     return duplicates;
