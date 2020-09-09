@@ -25,7 +25,7 @@ std::vector<DuplicateVector> find_duplicates_vector_no_hash(
 template <typename T>
 inline std::vector<DuplicateVector> find_duplicates(const ArgMap &cl_args)
 {
-    if (std::get<bool>(cl_args.at("no_hash")))
+    if (std::get<bool>(cl_args.at("no-hash")))
     {
         return find_duplicates_vector_no_hash(cl_args);
     }

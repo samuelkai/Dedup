@@ -158,7 +158,7 @@ ArgMap parse(int argc, char* argv[])
             ("v,vector", "Use a vector instead of an unordered map to store "
                 "the candidates for deduplication. Doesn't affect the result " 
                 "of the program. Mutually exclusive with the argument "
-                "'no_hash'.",
+                "'no-hash'.",
                 cxxopts::value<bool>()->default_value("false"))
         ;
 
@@ -259,12 +259,12 @@ ArgMap parse(int argc, char* argv[])
         
         cl_args["bytes"] = result["bytes"].as<uintmax_t>();
         cl_args["recurse"] = result.count("recurse") > 0 ? true : false;
-        cl_args["no_hash"] = result.count("no_hash") > 0 ? true : false;
+        cl_args["no-hash"] = result.count("no-hash") > 0 ? true : false;
         cl_args["vector"] = result.count("vector") > 0 ? true : false;
-        if (std::get<bool>(cl_args.at("no_hash")) && 
+        if (std::get<bool>(cl_args.at("no-hash")) && 
             std::get<bool>(cl_args.at("vector")))
         {
-            cerr << "Only one of arguments 'no_hash' and 'vector' can be "
+            cerr << "Only one of arguments 'no-hash' and 'vector' can be "
                     "specified." << '\n';
             throw EndException(1);
         }
