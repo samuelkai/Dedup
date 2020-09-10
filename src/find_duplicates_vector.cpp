@@ -31,19 +31,6 @@ using DedupVector = std::vector<
 using FileSizeTable = std::unordered_map<uintmax_t, vector<File>>;
 
 template <typename T>
-std::size_t index_of_file(DedupVector<T> &vec, string path)
-{
-    for (size_t i = 0; i < vec.size(); i++)
-    {
-        if (vec[i].second.path == path)
-        {
-            return i;
-        }
-    }
-    return std::numeric_limits<std::size_t>::max(); 
-}
-
-template <typename T>
 DuplicateVector find_duplicate_file(string path, vector<std::pair<T, File>> &same_hashes)
 {
     DuplicateVector dup_vec;
