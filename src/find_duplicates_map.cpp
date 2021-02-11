@@ -276,7 +276,7 @@ vector<DuplicateVector> find_duplicates_map(const ArgMap &cl_args)
         
     }
     
-    const size_t total_count = sm.get_count();
+    size_t total_count = sm.get_count();
     const uintmax_t total_size = sm.get_size();
     cout << "Counted " << total_count << " files occupying "
             << format_bytes(total_size) << "." << endl;
@@ -302,6 +302,7 @@ vector<DuplicateVector> find_duplicates_map(const ArgMap &cl_args)
 
         cout << "Discarded " << no_unique_file_sizes << " files with unique "
         "size from deduplication.\n";
+        total_count -= no_unique_file_sizes;
     }
 
     DedupTable<T> dedup_table;
@@ -326,7 +327,7 @@ vector<DuplicateVector> find_duplicates_map(const ArgMap &cl_args)
             iter = file_size_table.erase(iter);
         }
     }
-
+    
     cout << "\r" << "Done checking.                             " << endl;
 
     // Includes vectors of files whose whole content is the same
