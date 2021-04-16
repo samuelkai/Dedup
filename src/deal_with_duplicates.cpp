@@ -270,13 +270,24 @@ void deal_with_duplicates(Action action, vector<DuplicateVector> duplicates)
         // A set of n identical files has n - 1 duplicate files
         number_of_duplicate_files += dup_vec.size() - 1;
         duplicates_size += (dup_vec.size() - 1) 
-            * fs::file_size(dup_vec[0].path);
+                        * fs::file_size(dup_vec[0].path);
         
-        // Sort the duplicate vectors, file with oldest modification time first
+        // Sort the files in duplicate vectors, first by the order in which
+        // their (parent) paths were given on the command line, then by their
+        // last modification time. Both are earliest first. This determines
+        // which file is kept in non-prompting actions.
         std::sort(dup_vec.begin(), dup_vec.end(), 
             [](const File &f1, const File &f2) 
             {
-                return f1.m_time < f2.m_time;
+                if (f1.number_of_path == f2.number_of_path)
+                {
+                    return f1.m_time < f2.m_time;
+                }
+                else
+                {
+                    return f1.number_of_path < f2.number_of_path;
+                }
+                
             }
         );
     }

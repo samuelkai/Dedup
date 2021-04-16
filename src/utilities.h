@@ -32,7 +32,9 @@ using ContentArray = std::array<char, beginning_size>;
 struct File {
     std::string path;
     std::filesystem::file_time_type m_time;
-    File(std::string _path, std::filesystem::file_time_type _m_time);
+    std::size_t number_of_path;
+    File(std::string _path, std::filesystem::file_time_type _m_time, 
+         std::size_t number_of_path);
 };
 
 /**

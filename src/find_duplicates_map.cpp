@@ -79,6 +79,7 @@ void insert_into_dedup_table(const File &file, uintmax_t size,
     // Calculate the hash and truncate it to the specified length
     const auto hash = static_cast<T>(hash_file(file.path, bytes));
 
+    // If this vector doesn't already exist, [] creates it
     vector<DuplicateVector> &vec_vec = dedup_table[size][hash];
 
     if (vec_vec.empty()) // First file that produces this hash
@@ -159,7 +160,7 @@ class ScanManager {
         ScanManager(FileSizeTable &f)
             : count(0), size(0), file_size_table(f) {};
 
-        void insert(const fs::directory_entry &entry)
+        void insert(const fs::directory_entry &entry, size_t number_of_path)
         {
             try
             {
@@ -171,7 +172,8 @@ class ScanManager {
                     size += entry.file_size();
                     file_size_table[entry.file_size()]
                         .push_back(File(entry.path().string(), 
-                                        entry.last_write_time()));
+                                        entry.last_write_time(),
+                                        number_of_path));
                 }
             }
             catch(const fs::filesystem_error &e)
@@ -217,7 +219,8 @@ void print_progress(DedupManager<T> &op) {
  */
 namespace
 {
-    void scan_path(const fs::path &path, bool recurse, ScanManager &sm)
+    void scan_path(const fs::path &path, bool recurse, ScanManager &sm, 
+                   size_t number_of_path)
     {
         if (fs::is_directory(path))
         {
@@ -227,7 +230,7 @@ namespace
                 for (const auto &p : fs::recursive_directory_iterator(path, 
                     fs::directory_options::skip_permission_denied))
                 {
-                    sm.insert(p);
+                    sm.insert(p, number_of_path);
                 }
             }
             else
@@ -235,13 +238,13 @@ namespace
                 for (const auto &p : fs::directory_iterator(path, 
                     fs::directory_options::skip_permission_denied))
                 {
-                    sm.insert(p);
+                    sm.insert(p, number_of_path);
                 }
             }
         }
         else
         {
-            sm.insert(fs::directory_entry(path));
+            sm.insert(fs::directory_entry(path), number_of_path);
         }
     }
 }
@@ -263,17 +266,19 @@ vector<DuplicateVector> find_duplicates_map(const ArgMap &cl_args)
     ScanManager sm = ScanManager(file_size_table);
     
     const bool recurse = std::get<bool>(cl_args.at("recurse"));
+    size_t number_of_path = 0; // Used in deciding which file to keep when 
+                               // deleting or linking without prompting
     for (const auto &path : std::get<vector<fs::path>>(cl_args.at("paths")))
     {
         try
         {
-            scan_path(path, recurse, sm);
+            scan_path(path, recurse, sm, number_of_path);
         }
         catch(const std::exception &e)
         {
             cerr << e.what() << '\n';
         }
-        
+        ++number_of_path;
     }
     
     size_t total_count = sm.get_count();
@@ -312,7 +317,7 @@ vector<DuplicateVector> find_duplicates_map(const ArgMap &cl_args)
     const uintmax_t bytes = std::get<uintmax_t>(cl_args.at("bytes"));
 
     { // The deduplication
-        DedupManager<T> iop = DedupManager<T>(dedup_table, 
+        DedupManager<T> dm = DedupManager<T>(dedup_table, 
         bytes, total_count, total_count / 20);
 
         auto iter = file_size_table.begin();
@@ -322,7 +327,7 @@ vector<DuplicateVector> find_duplicates_map(const ArgMap &cl_args)
         {
             for (const auto &file : iter->second)
             {
-                iop.insert(file, iter->first);
+                dm.insert(file, iter->first);
             }
             iter = file_size_table.erase(iter);
         }

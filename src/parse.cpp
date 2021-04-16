@@ -105,18 +105,19 @@ ArgMap parse(int argc, char* argv[])
             ("d,delete", "Without prompting, delete duplicate files, keeping "
                 "only one file in each set of duplicates. Files in paths given "
                 "earlier in the argument list have higher precedence to be "
-                "kept. If there are duplicates in the same folder, the file "
-                "with the earliest modification time is kept. Must be "
-                "specified twice in order to avoid accidental use.", 
+                "kept. If there are duplicates that were found in the same "
+                "given path, the file with the earliest modification time is "
+                "kept. Must be specified twice in order to avoid "
+                "accidental use.", 
                 cxxopts::value<bool>()->default_value("false"))
 
             ("k,hardlink", "Without prompting, keep only one file in each set "
                 "of duplicates and replace the others with hard links to the "
                 "one kept. Files in paths given earlier in the argument list "
                 "have higher precedence to be the target of the link (whose "
-                "metadata is kept). If there are duplicates in the same "
-                "folder, the file with the earliest modification time is the "
-                "target.",
+                "metadata is kept). If there are duplicates that were found "
+                "in the same given path, the file with the earliest "
+                "modification time is the target.",
                 cxxopts::value<bool>()->default_value("false"))
 
             ("l,list", "List found duplicates.", 
@@ -129,8 +130,8 @@ ArgMap parse(int argc, char* argv[])
                 "of duplicates and replace the others with symlinks to the one "
                 "kept. Files in paths given earlier in the argument list have "
                 "higher precedence to be the target of the link. If there are "
-                "duplicates in the same folder, the file with the earliest "
-                "modification time is the target.",
+                "duplicates that were found in the same given path, the file "
+                "with the earliest modification time is the target.",
                 cxxopts::value<bool>()->default_value("false"))
         ;
 

@@ -16,8 +16,9 @@ using std::vector;
 
 namespace fs = std::filesystem;
 
-File::File(std::string _path, std::filesystem::file_time_type _m_time) : 
-        path(std::move(_path)), m_time(_m_time)
+File::File(std::string _path, std::filesystem::file_time_type _m_time,
+           std::size_t _number_of_path) : 
+        path(std::move(_path)), m_time(_m_time), number_of_path(_number_of_path)
 {
 }
 
