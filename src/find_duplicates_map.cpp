@@ -164,16 +164,33 @@ class ScanManager {
         {
             try
             {
-                // Symlinks are not followed
-                if (fs::is_regular_file(fs::symlink_status(entry.path()))
-                    && !fs::is_empty(entry.path()))
+                fs::path path = entry.path();
+                // Symlinks and empty files are skipped
+                if (fs::is_regular_file(fs::symlink_status(path))
+                    && !fs::is_empty(path))
                 {
-                    ++count;
-                    size += entry.file_size();
-                    file_size_table[entry.file_size()]
-                        .push_back(File(entry.path().string(), 
+                    auto file_size = entry.file_size();
+                    // If a file's hard link count is 1, it doesn't have extra
+                    // hard links
+                    if (fs::hard_link_count(path) > 1)
+                    {
+                        for (auto &file : file_size_table[file_size])
+                        {
+                            if (fs::equivalent(path, fs::path(file.path)))
+                            {
+                                // The file to be inserted is an extra hard link
+                                // to an already inserted file, so skip it
+                                return;
+                            }
+                        }
+                    }
+                    
+                    file_size_table[file_size]
+                        .push_back(File(path.string(), 
                                         entry.last_write_time(),
                                         number_of_path));
+                    ++count;
+                    size += file_size;
                 }
             }
             catch(const fs::filesystem_error &e)
