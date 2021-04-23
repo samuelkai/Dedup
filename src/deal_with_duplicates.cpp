@@ -180,10 +180,17 @@ void link_files(const DuplicateVector &files, bool hard_link)
         
         try
         {
-            if (fs::last_write_time(link) > files[i-1].m_time)
+            if (fs::last_write_time(target) > files[0].m_time)
+            {
+                cerr << "The link target " << target << " has been "
+                "modified after it was scanned. Aborting the linking process.";
+                return;
+            }
+            else if (fs::last_write_time(link) > files[i-1].m_time)
             {
                 cerr << "File " << link << " has been "
-                "modified after it was scanned. Did not hard link it.\n";
+                "modified after it was scanned. Did not "
+                << (hard_link ? "hard " : "sym") << "link it.\n";
             }
             else
             {
