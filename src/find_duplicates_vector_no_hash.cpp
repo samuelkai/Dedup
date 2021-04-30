@@ -269,7 +269,7 @@ vector<DuplicateVector> find_duplicates_vector_no_hash(const ArgMap &cl_args)
     cout << "Counted " << total_count << " files occupying "
             << format_bytes(total_size) << "." << endl;
 
-    size_t no_unique_file_sizes = 0;
+    size_t no_fls_with_uniq_sz = 0;
 
     { // Files with unique size can't have duplicates
         auto same_size_iter = file_size_table.begin();
@@ -280,7 +280,7 @@ vector<DuplicateVector> find_duplicates_vector_no_hash(const ArgMap &cl_args)
             if (same_size_iter->second.size() == 1) // Unique size
             {
                 same_size_iter = file_size_table.erase(same_size_iter);
-                ++no_unique_file_sizes;
+                ++no_fls_with_uniq_sz;
             }
             else
             {
@@ -288,7 +288,7 @@ vector<DuplicateVector> find_duplicates_vector_no_hash(const ArgMap &cl_args)
             }
         }
 
-        cout << "Discarded " << no_unique_file_sizes << " files with unique "
+        cout << "Discarded " << no_fls_with_uniq_sz << " files with unique "
         "size from deduplication.\n";
     }
 
@@ -299,7 +299,7 @@ vector<DuplicateVector> find_duplicates_vector_no_hash(const ArgMap &cl_args)
     const uintmax_t bytes = std::get<uintmax_t>(cl_args.at("bytes"));
 
     DedupVector dedup_vector;
-    dedup_vector.reserve(total_count - no_unique_file_sizes);
+    dedup_vector.reserve(total_count - no_fls_with_uniq_sz);
 
     { // The deduplication
         DedupManager dm = DedupManager(dedup_vector, 
@@ -326,28 +326,34 @@ vector<DuplicateVector> find_duplicates_vector_no_hash(const ArgMap &cl_args)
     // Includes vectors of files whose whole content is the same
     vector<DuplicateVector> duplicates;
     {
-        while (!dedup_vector.empty())
+        std::sort(dedup_vector.begin(), dedup_vector.end(), sort_only_by_first);
+
+        vector<DedupVector> vec_of_same_beginnings;
+        for (size_t i = 0; i < dedup_vector.size() - 1; i++)
         {
-            const auto &current = dedup_vector.end() - 1;
+            DedupVector same_beginnings;
+            same_beginnings.push_back(dedup_vector[i]);
+            size_t j = 0;
+            for (; i+j+1 < dedup_vector.size() && 
+                dedup_vector[i+j].first == dedup_vector[i+j+1].first; j++)
+            {
+                same_beginnings.push_back(dedup_vector[i+j+1]);
+            }
+            i += j;
+            vec_of_same_beginnings.push_back(same_beginnings);
+        }
 
-            std::pair<typename DedupVector::iterator,
-                      typename DedupVector::iterator> 
-            bounds = std::equal_range(dedup_vector.begin(), dedup_vector.end(), 
-                                      *current, sort_only_by_first);
-
-            DedupVector same_beginning = vector(bounds.first, bounds.second);
-
-            while (same_beginning.size() > 1)
+        for (DedupVector &same_beginnings: vec_of_same_beginnings)
+        {
+            while (same_beginnings.size() > 1)
             {
                 auto identicals = find_duplicate_file(
-                    same_beginning[0].second.path, same_beginning);
+                    same_beginnings[0].second.path, same_beginnings);
                 if (identicals.size() > 1)
                 {
                     duplicates.push_back(std::move(identicals));
                 }
             }
-
-            dedup_vector.erase(bounds.first, bounds.second);
         }
     }
     return duplicates;

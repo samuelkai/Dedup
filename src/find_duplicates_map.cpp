@@ -307,14 +307,14 @@ vector<DuplicateVector> find_duplicates_map(const ArgMap &cl_args)
         auto same_size_iter = file_size_table.begin();
         auto end_iter = file_size_table.end();
 
-        size_t no_unique_file_sizes = 0;
+        size_t no_fls_with_uniq_sz = 0;
 
         for(; same_size_iter != end_iter; )
         {
             if (same_size_iter->second.size() == 1) // Unique size
             {
                 same_size_iter = file_size_table.erase(same_size_iter);
-                ++no_unique_file_sizes;
+                ++no_fls_with_uniq_sz;
             }
             else
             {
@@ -322,9 +322,9 @@ vector<DuplicateVector> find_duplicates_map(const ArgMap &cl_args)
             }
         }
 
-        cout << "Discarded " << no_unique_file_sizes << " files with unique "
+        cout << "Discarded " << no_fls_with_uniq_sz << " files with unique "
         "size from deduplication.\n";
-        total_count -= no_unique_file_sizes;
+        total_count -= no_fls_with_uniq_sz;
     }
 
     DedupTable<T> dedup_table;
