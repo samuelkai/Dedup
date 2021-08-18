@@ -17,9 +17,12 @@ using std::vector;
 
 namespace fs = std::filesystem;
 
+/**
+ * Stores Files and the beginnings of their data.
+ */
 using DedupVector = std::vector<
                         std::pair<
-                            ContentArray,
+                            BeginningData,
                             File
                         >
                     >;
@@ -29,6 +32,10 @@ using DedupVector = std::vector<
  */
 using FileSizeTable = std::unordered_map<uintmax_t, vector<File>>;
 
+/**
+ * Checks the given vector for files identical to the one in the given path and 
+ * returns them.
+ */
 DuplicateVector find_duplicate_file(string path, DedupVector &same_beginning)
 {
     DuplicateVector dup_vec;
@@ -43,19 +50,17 @@ DuplicateVector find_duplicate_file(string path, DedupVector &same_beginning)
         {
             ++curr;
         }
-        
     }
     return dup_vec;
-
 }
 
 /**
  * Inserts the given File into the deduplication table.
  */
 void insert_into_dedup_table(const File &file, 
-                             DedupVector &dedup_vector)
+                             DedupVector &dedup_vector, uintmax_t bytes)
 {   
-    const ContentArray beginning = read_file_beginning(file.path);
+    const BeginningData beginning = read_file_beginning(file.path, bytes);
     dedup_vector.push_back(std::make_pair(beginning, file));
 }
 
@@ -83,7 +88,7 @@ class DedupManager {
         {
             try
             {
-                insert_into_dedup_table(file, dedup_vector);
+                insert_into_dedup_table(file, dedup_vector, bytes);
             }
             catch(const fs::filesystem_error &e)
             {
@@ -227,8 +232,11 @@ namespace
     }
 }
 
-bool sort_only_by_first(const std::pair<ContentArray, File> &a, 
-                        const std::pair<ContentArray, File> &b) 
+/**
+ * Sort by the beginnings of files.
+ */
+bool sort_only_by_first(const std::pair<BeginningData, File> &a, 
+                        const std::pair<BeginningData, File> &b) 
 { 
     return (a.first < b.first);
 } 
@@ -326,8 +334,7 @@ vector<DuplicateVector> find_duplicates_vector_no_hash(const ArgMap &cl_args)
     // Includes vectors of files whose whole content is the same
     vector<DuplicateVector> duplicates;
     {
-        std::sort(dedup_vector.begin(), dedup_vector.end(), sort_only_by_first);
-
+        // Group files that have the same beginning into vectors
         vector<DedupVector> vec_of_same_beginnings;
         for (size_t i = 0; i < dedup_vector.size() - 1; i++)
         {
@@ -343,14 +350,18 @@ vector<DuplicateVector> find_duplicates_vector_no_hash(const ArgMap &cl_args)
             vec_of_same_beginnings.push_back(same_beginnings);
         }
 
+        // Compare the whole content of files that have the same beginning
         for (DedupVector &same_beginnings: vec_of_same_beginnings)
         {
             while (same_beginnings.size() > 1)
             {
+                const auto to_be_compared = same_beginnings.begin()->second;
+                same_beginnings.erase(same_beginnings.begin());
                 auto identicals = find_duplicate_file(
-                    same_beginnings[0].second.path, same_beginnings);
-                if (identicals.size() > 1)
+                    to_be_compared.path, same_beginnings);
+                if (identicals.size() > 0)
                 {
+                    identicals.push_back(to_be_compared);
                     duplicates.push_back(std::move(identicals));
                 }
             }

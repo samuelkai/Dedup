@@ -17,6 +17,9 @@ using std::vector;
 
 namespace fs = std::filesystem;
 
+/**
+ * Stores Files and the beginnings of their data.
+ */
 template <typename T>
 using DedupVector = std::vector<
                         std::pair<
@@ -30,8 +33,13 @@ using DedupVector = std::vector<
  */
 using FileSizeTable = std::unordered_map<uintmax_t, vector<File>>;
 
+/**
+ * Checks the given vector for files identical to the one in the given path and 
+ * returns them.
+ */
 template <typename T>
-DuplicateVector find_duplicate_file(string path, vector<std::pair<T, File>> &same_hashes)
+DuplicateVector find_duplicate_file(string path, 
+                                    vector<std::pair<T, File>> &same_hashes)
 {
     DuplicateVector dup_vec;
     for (auto curr = same_hashes.begin(); curr != same_hashes.end();)
@@ -45,10 +53,8 @@ DuplicateVector find_duplicate_file(string path, vector<std::pair<T, File>> &sam
         {
             ++curr;
         }
-        
     }
     return dup_vec;
-
 }
 
 /**
@@ -331,9 +337,7 @@ vector<DuplicateVector> find_duplicates_vector(const ArgMap &cl_args)
     // Includes vectors of files whose whole content is the same
     vector<DuplicateVector> duplicates;
     {
-        std::sort(dedup_vector.begin(), dedup_vector.end(), 
-            sort_only_by_first<T>);
-
+        // Group files that have the same hash into vectors
         vector<DedupVector<T>> vec_of_same_hashes;
         for (size_t i = 0; i < dedup_vector.size() - 1; i++)
         {
@@ -349,14 +353,18 @@ vector<DuplicateVector> find_duplicates_vector(const ArgMap &cl_args)
             vec_of_same_hashes.push_back(same_hashes);
         }
 
+        // Compare the whole content of files that have the same hash
         for (DedupVector<T> &same_hashes: vec_of_same_hashes)
         {
             while (same_hashes.size() > 1)
             {
+                const auto to_be_compared = same_hashes.begin()->second;
+                same_hashes.erase(same_hashes.begin());
                 auto identicals = find_duplicate_file(
-                    same_hashes[0].second.path, same_hashes);
-                if (identicals.size() > 1)
+                    to_be_compared.path, same_hashes);
+                if (identicals.size() > 0)
                 {
+                    identicals.push_back(to_be_compared);
                     duplicates.push_back(std::move(identicals));
                 }
             }

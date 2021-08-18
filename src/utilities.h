@@ -21,8 +21,8 @@ using Arg = std::variant<
 // Container for retrieving command line arguments
 using ArgMap = std::unordered_map<std::string, Arg>;
 
-constexpr size_t beginning_size = 4096;
-using ContentArray = std::array<char, beginning_size>; 
+// Holds data from the beginning of a file
+using BeginningData = std::vector<char>;
 
 /**
  * Stores a file's path and last modification time. When the file is asked to be
@@ -70,6 +70,9 @@ uint64_t hash_file(const std::string &path, uintmax_t bytes);
  */
 std::string format_bytes(uintmax_t bytes);
 
-ContentArray read_file_beginning(const std::string &path);
+/**
+ * Returns the given number of bytes from the beginning of the given file.
+ */
+BeginningData read_file_beginning(const std::string &path, uintmax_t bytes);
 
 #endif // UTILITIES_H

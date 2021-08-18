@@ -16,6 +16,9 @@ using std::vector;
 
 namespace fs = std::filesystem;
 
+/**
+ * Holds file-related information.
+ */
 File::File(std::string _path, std::filesystem::file_time_type _m_time,
            std::size_t _number_of_path) : 
         path(std::move(_path)), m_time(_m_time), number_of_path(_number_of_path)
@@ -219,7 +222,10 @@ string format_bytes(uintmax_t bytes)
     return out.str();
 }
 
-ContentArray read_file_beginning(const string &path)
+/**
+ * Returns the given number of bytes from the beginning of the given file.
+ */
+BeginningData read_file_beginning(const string &path, uintmax_t bytes)
 {
     std::fstream f1;
     try
@@ -232,10 +238,10 @@ ContentArray read_file_beginning(const string &path)
         throw FileException(e.code());
     }
 
-    ContentArray input_buffer;
+    BeginningData input_buffer(bytes);
     try
     {
-        f1.read(input_buffer.data(), beginning_size);
+        f1.read(input_buffer.data(), bytes);
     }
     catch(const std::ios_base::failure &e)
     {
@@ -243,10 +249,10 @@ ContentArray read_file_beginning(const string &path)
         {
             throw FileException(e.code());
         }
-        else if (f1.gcount() < static_cast<std::streamsize>(beginning_size))
+        else if (f1.gcount() < static_cast<std::streamsize>(bytes))
         {
             // Pad with zeros
-            for (size_t i = f1.gcount(); i < beginning_size; i++)
+            for (size_t i = f1.gcount(); i < bytes; i++)
             {
                 input_buffer[i] = 0;
             }
