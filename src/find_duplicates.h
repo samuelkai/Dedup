@@ -9,6 +9,9 @@ template <typename T>
 std::vector<DuplicateVector> find_duplicates_map(const ArgMap &cl_args);
 
 template <typename T>
+std::vector<DuplicateVector> find_duplicates_map_two(const ArgMap &cl_args);
+
+template <typename T>
 std::vector<DuplicateVector> find_duplicates_vector(const ArgMap &cl_args);
 
 std::vector<DuplicateVector> find_duplicates_vector_no_hash(
@@ -32,6 +35,10 @@ inline std::vector<DuplicateVector> find_duplicates(const ArgMap &cl_args)
     else if (std::get<bool>(cl_args.at("vector")))
     {
         return find_duplicates_vector<T>(cl_args);
+    }
+    else if (std::get<bool>(cl_args.at("two")))
+    {
+        return find_duplicates_map_two<T>(cl_args);
     }
     else
     {

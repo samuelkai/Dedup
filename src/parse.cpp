@@ -149,17 +149,24 @@ ArgMap parse(int argc, char* argv[])
 
             ("n,no-hash", "In the initial comparison step, use file contents "
                 "instead of hash digests. Doesn't affect the result of the "
-                "program. Implies the argument 'vector', and is mutually "
-                "exclusive with it.",
+                "program. Mutually exclusive with the argument 'two'. "
+                "Implies the argument 'vector', and is mutually exclusive with "
+                "it.",
                 cxxopts::value<bool>()->default_value("false"))
 
             ("r,recurse", "Search the paths for duplicates recursively",
                 cxxopts::value<bool>()->default_value("false"))
 
+            ("t,two", "Use two layers of unordered maps to store the "
+                "candidates for deduplication. Doesn't affect the result of "
+                "the program. Mutually exclusive with the arguments 'no-hash' "
+                "and 'vector'.",
+                cxxopts::value<bool>()->default_value("false"))
+
             ("v,vector", "Use a vector instead of an unordered map to store "
                 "the candidates for deduplication. Doesn't affect the result " 
-                "of the program. Mutually exclusive with the argument "
-                "'no-hash'.",
+                "of the program. Mutually exclusive with the arguments "
+                "'no-hash' and 'two'.",
                 cxxopts::value<bool>()->default_value("false"))
         ;
 
@@ -261,12 +268,26 @@ ArgMap parse(int argc, char* argv[])
         cl_args["bytes"] = result["bytes"].as<uintmax_t>();
         cl_args["recurse"] = result.count("recurse") > 0 ? true : false;
         cl_args["no-hash"] = result.count("no-hash") > 0 ? true : false;
+        cl_args["two"] = result.count("two") > 0 ? true : false;
         cl_args["vector"] = result.count("vector") > 0 ? true : false;
-        if (std::get<bool>(cl_args.at("no-hash")) && 
-            std::get<bool>(cl_args.at("vector")))
+
+        int index_argument_count = 0;
+        if (std::get<bool>(cl_args.at("no-hash")))
         {
-            cerr << "Only one of arguments 'no-hash' and 'vector' can be "
-                    "specified." << '\n';
+            ++index_argument_count;
+        }
+        if (std::get<bool>(cl_args.at("two")))
+        {
+            ++index_argument_count;
+        }
+        if (std::get<bool>(cl_args.at("vector")))
+        {
+            ++index_argument_count;
+        }
+        if (index_argument_count > 1)
+        {
+            cerr << "Only one of arguments 'no-hash', 'two' and 'vector' "
+                    "can be specified." << '\n';
             throw EndException(1);
         }
         
@@ -275,7 +296,7 @@ ArgMap parse(int argc, char* argv[])
     }
     catch (const cxxopts::OptionException& e)
     {
-        cerr << "error parsing options: " << e.what() << '\n';
+        cerr << "Error parsing options: " << e.what() << '\n';
         throw EndException(1);
     }
 
