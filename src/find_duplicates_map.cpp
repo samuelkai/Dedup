@@ -223,7 +223,8 @@ void print_progress(DedupManager<T> &op) {
     const size_t tot_f_cnt = op.get_total_count();
     const size_t step_size = op.get_step_size();
 
-    if (step_size > 0 && curr_f_cnt % step_size == 0)
+    if (step_size > 0 
+        && (curr_f_cnt % step_size == 0 || curr_f_cnt == tot_f_cnt))
     {
         const float progress = static_cast<float>(curr_f_cnt) 
             / static_cast<float>(tot_f_cnt);
@@ -338,7 +339,7 @@ vector<DuplicateVector> find_duplicates_map(const ArgMap &cl_args)
 
     { // The deduplication
         DedupManager<T> dm = DedupManager<T>(dedup_table, 
-        bytes, total_count, total_count / 20);
+        bytes, total_count, total_count / 20 + 1);
 
         auto iter = file_size_table.begin();
         auto end_iter = file_size_table.end();
@@ -353,7 +354,7 @@ vector<DuplicateVector> find_duplicates_map(const ArgMap &cl_args)
         }
     }
     
-    cout << "\r" << "Done checking.                             " << endl;
+    cout << endl << "Done checking." << endl;
 
     // Includes vectors of files whose whole content is the same
     vector<DuplicateVector> duplicates;
