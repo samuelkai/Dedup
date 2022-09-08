@@ -339,12 +339,12 @@ vector<DuplicateVector> find_duplicates_vector_no_hash(const ArgMap &cl_args)
         for (size_t i = 0; i < dedup_vector.size() - 1; i++)
         {
             DedupVector same_beginnings;
-            same_beginnings.push_back(dedup_vector[i]);
+            same_beginnings.push_back(std::move(dedup_vector[i]));
             size_t j = 0;
             for (; i+j+1 < dedup_vector.size() && 
-                dedup_vector[i+j].first == dedup_vector[i+j+1].first; j++)
+                same_beginnings.back().first == dedup_vector[i+j+1].first; j++)
             {
-                same_beginnings.push_back(dedup_vector[i+j+1]);
+                same_beginnings.push_back(std::move(dedup_vector[i+j+1]));
             }
             i += j;
             vec_of_same_beginnings.push_back(same_beginnings);
