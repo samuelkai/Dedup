@@ -1,4 +1,4 @@
-#include "find_duplicates.h"
+#include "find_duplicates_base.h"
 #include "utilities.h"
 
 #include <filesystem>
@@ -54,11 +54,6 @@ using LongTable = std::unordered_map<
     T,
     vector<DuplicateVector>
 >;
-
-/**
- * Stores Files grouped by their size. Used during the file scanning phase.
- */
-using FileSizeTable = std::unordered_map<uintmax_t, vector<File>>;
 
 /**
  * Checks the given vector of duplicate file vectors for a file that has the
@@ -203,136 +198,9 @@ class DedupManager {
                 cerr << e.what() << '\n';
             }
             ++current_count;
-            print_progress(*this);
+            print_progress(current_count, total_count, step_size);
         }
-
-        size_t get_current_count() const {return current_count;}
-        size_t get_total_count() const {return total_count;}
-        size_t get_step_size() const {return step_size;}
 };
-
-
-/**
- * Manages the scanning that is done before deduplication. Files are counted and
- * their paths and last modification times are collected.
- */
-class ScanManager {
-        // size_t can store the maximum size of a theoretically possible object 
-        // of any type. Because we store Files in objects, we use size_t.
-        size_t count;
-        // uintmax_t is the maximum width unsigned integer type. We use it in 
-        // order to not limit file size by type choice.
-        uintmax_t size;
-        FileSizeTable &file_size_table;
-    public:
-        ScanManager(FileSizeTable &f)
-            : count(0), size(0), file_size_table(f) {};
-
-        void insert(const fs::directory_entry &entry, size_t number_of_path)
-        {
-            try
-            {
-                fs::path path = entry.path();
-                // Symlinks and empty files are skipped
-                if (fs::is_regular_file(fs::symlink_status(path))
-                    && !fs::is_empty(path))
-                {
-                    auto file_size = entry.file_size();
-                    // If a file's hard link count is 1, it doesn't have extra
-                    // hard links
-                    if (fs::hard_link_count(path) > 1)
-                    {
-                        for (auto &file : file_size_table[file_size])
-                        {
-                            if (fs::equivalent(path, fs::path(file.path)))
-                            {
-                                // The file to be inserted is an extra hard link
-                                // to an already inserted file, so skip it
-                                return;
-                            }
-                        }
-                    }
-                    
-                    file_size_table[file_size]
-                        .push_back(File(path.string(), 
-                                        entry.last_write_time(),
-                                        number_of_path));
-                    ++count;
-                    size += file_size;
-                }
-            }
-            catch(const fs::filesystem_error &e)
-            {
-                cerr << e.what() << '\n';
-            }
-            catch(const std::runtime_error &e)
-            {
-                cerr << e.what() << " [" << entry.path().string() << "]\n";
-            }
-            catch(const std::exception& e)
-            {
-                cerr << e.what() << '\n';
-            }
-        }
-
-        size_t get_count() const {return count;}
-        uintmax_t get_size() const {return size;}
-};
-
-/**
- * Prints the progress on finding duplicates.
- */
-template <typename T>
-void print_progress(DedupManager<T> &op) {
-    const size_t curr_f_cnt = op.get_current_count();
-    const size_t tot_f_cnt = op.get_total_count();
-    const size_t step_size = op.get_step_size();
-
-    if (step_size > 0 && curr_f_cnt % step_size == 0)
-    {
-        const float progress = static_cast<float>(curr_f_cnt) 
-            / static_cast<float>(tot_f_cnt);
-        cout << "\r" << "File " << curr_f_cnt << "/" << tot_f_cnt 
-            << " (" << int(progress * 100.0) << " %)";
-        cout.flush();
-    }
-}
-
-/**
- * Traverses the given path and collects information about files.
- * Directories are traversed recursively if wanted.
- */
-namespace
-{
-    void scan_path(const fs::path &path, bool recurse, ScanManager &sm, 
-                   size_t number_of_path)
-    {
-        if (fs::is_directory(path))
-        {
-            // Directories that cannot be accessed are skipped
-            if (recurse)
-            {
-                for (const auto &p : fs::recursive_directory_iterator(path, 
-                    fs::directory_options::skip_permission_denied))
-                {
-                    sm.insert(p, number_of_path);
-                }
-            }
-            else
-            {
-                for (const auto &p : fs::directory_iterator(path, 
-                    fs::directory_options::skip_permission_denied))
-                {
-                    sm.insert(p, number_of_path);
-                }
-            }
-        }
-        else
-        {
-            sm.insert(fs::directory_entry(path), number_of_path);
-        }
-    }
-}
 
 /**
  * Finds duplicate files from the given paths.
@@ -419,7 +287,7 @@ vector<DuplicateVector> find_duplicates_map_two(const ArgMap &cl_args)
         }
     }
     
-    cout << "\r" << "Done checking.                             " << endl;
+    cout << endl << "Done checking." << endl;
 
     // Includes vectors of files whose whole content is the same
     vector<DuplicateVector> duplicates;
