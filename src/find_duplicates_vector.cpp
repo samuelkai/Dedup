@@ -17,6 +17,7 @@ using std::vector;
 
 namespace fs = std::filesystem;
 
+namespace {
 /**
  * Stores Files and hashes of the beginnings of their data.
  */
@@ -110,6 +111,7 @@ bool sort_only_by_first(const std::pair<T, File> &a,
 { 
     return (a.first < b.first); 
 } 
+}
 
 /**
  * Finds duplicate files from the given paths.

@@ -17,6 +17,7 @@ using std::vector;
 
 namespace fs = std::filesystem;
 
+namespace {
 /**
  * Stores Files and the beginnings of their data.
  */
@@ -58,10 +59,6 @@ void insert_into_dedup_table(const File &file,
     const BeginningData beginning = read_file_beginning(file.path, bytes);
     dedup_vector.push_back(std::make_pair(beginning, file));
 }
-
-class DedupManager;
-
-void print_progress(DedupManager &op);
 
 /**
  * Manages the deduplication. Stores progress information and inserts Files to
@@ -110,6 +107,7 @@ bool sort_only_by_first(const std::pair<BeginningData, File> &a,
 { 
     return (a.first < b.first);
 } 
+}
 
 /**
  * Finds duplicate files from the given paths.

@@ -15,6 +15,7 @@ using std::vector;
 
 namespace fs = std::filesystem;
 
+namespace {
 /**
  * Stores Files, their sizes and hashes of file contents.
  * The key of the outer map is file size.
@@ -39,32 +40,29 @@ using DedupTable = std::unordered_map<
  * same content as the file in the given path. If found, inserts the path
  * to the duplicate file vector and returns true.
  */ 
-namespace
+bool find_duplicate_file(const File &file,
+                         vector<DuplicateVector> &vec_vec)
 {
-    bool find_duplicate_file(const File &file,
-                            vector<DuplicateVector> &vec_vec)
+    // vec_vec contains Files that have the same hash
+    // dup_vec contains Files whose whole content is the same
+    for (auto &dup_vec: vec_vec)
     {
-        // vec_vec contains Files that have the same hash
-        // dup_vec contains Files whose whole content is the same
-        for (auto &dup_vec: vec_vec)
+        try
         {
-            try
+            if (compare_files(file.path, dup_vec[0].path))
             {
-                if (compare_files(file.path, dup_vec[0].path))
-                {
-                    // Identical to the files in dup_vec
-                    dup_vec.push_back(file);
-                    return true;
-                }
+                // Identical to the files in dup_vec
+                dup_vec.push_back(file);
+                return true;
             }
-            catch(const FileException &e)
-            {
-                // By catching here we can compare to the other elements of dup_vec
-                cerr << e.what() << '\n';
-            }                           
         }
-        return false;
+        catch(const FileException &e)
+        {
+            // By catching here we can compare to the other elements of dup_vec
+            cerr << e.what() << '\n';
+        }                           
     }
+    return false;
 }
 
 /**
@@ -136,6 +134,7 @@ class DedupManager {
             print_progress(current_count, total_count, step_size);
         }
 };
+}
 
 /**
  * Finds duplicate files from the given paths.
