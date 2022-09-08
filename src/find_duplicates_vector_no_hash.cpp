@@ -181,7 +181,7 @@ vector<DuplicateVector> find_duplicates_vector_no_hash(const ArgMap &cl_args)
 
     { // The deduplication
         DedupManager dm = DedupManager(dedup_vector, 
-        bytes, total_count, total_count / 20);
+        bytes, total_count, total_count / 20 + 1);
 
         auto iter = file_size_table.begin();
         auto end_iter = file_size_table.end();

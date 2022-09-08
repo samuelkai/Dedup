@@ -272,7 +272,7 @@ vector<DuplicateVector> find_duplicates_map_two(const ArgMap &cl_args)
 
     { // The deduplication
         DedupManager<T> dm = DedupManager<T>(short_table, 
-        bytes, total_count, total_count / 20, long_table);
+        bytes, total_count, total_count / 20 + 1, long_table);
 
         auto iter = file_size_table.begin();
         auto end_iter = file_size_table.end();
