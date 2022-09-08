@@ -333,6 +333,9 @@ vector<DuplicateVector> find_duplicates_vector_no_hash(const ArgMap &cl_args)
 
     // Includes vectors of files whose whole content is the same
     vector<DuplicateVector> duplicates;
+    if (dedup_vector.size() == 0) {
+        return duplicates;
+    }
     {
         // Group files that have the same beginning into vectors
         vector<DedupVector> vec_of_same_beginnings;

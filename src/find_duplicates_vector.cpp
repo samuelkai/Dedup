@@ -336,6 +336,9 @@ vector<DuplicateVector> find_duplicates_vector(const ArgMap &cl_args)
 
     // Includes vectors of files whose whole content is the same
     vector<DuplicateVector> duplicates;
+    if (dedup_vector.size() == 0) {
+        return duplicates;
+    }
     {
         // Group files that have the same hash into vectors
         vector<DedupVector<T>> vec_of_same_hashes;
