@@ -18,7 +18,7 @@ using std::vector;
 namespace fs = std::filesystem;
 
 /**
- * Stores Files and the beginnings of their data.
+ * Stores Files and hashes of the beginnings of their data.
  */
 template <typename T>
 using DedupVector = std::vector<
