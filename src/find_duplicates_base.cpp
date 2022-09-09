@@ -11,7 +11,8 @@ namespace fs = std::filesystem;
 ScanManager::ScanManager(FileSizeTable &f)
     : count(0), size(0), file_size_table(f) {}
 
-void ScanManager::insert(const fs::directory_entry &entry, size_t number_of_path)
+void ScanManager::insert(const fs::directory_entry &entry, 
+                         size_t number_of_path)
 {
     try
     {

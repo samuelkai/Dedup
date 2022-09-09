@@ -167,19 +167,16 @@ vector<DuplicateVector> find_duplicates_vector_no_hash(const ArgMap &cl_args)
         cout << "Discarded " << no_fls_with_uniq_sz << " files with unique "
         "size from deduplication.\n";
     }
+    const size_t total_non_unique_sz_count = total_count - no_fls_with_uniq_sz;
 
-    // DedupTable<T> dedup_table;
-
-    // Both are grouped by file size
-    // dedup_table.reserve(file_size_table.size());
     const uintmax_t bytes = std::get<uintmax_t>(cl_args.at("bytes"));
 
     DedupVector dedup_vector;
-    dedup_vector.reserve(total_count - no_fls_with_uniq_sz);
+    dedup_vector.reserve(total_non_unique_sz_count);
 
     { // The deduplication
         DedupManager dm = DedupManager(dedup_vector, 
-        bytes, total_count, total_count / 20 + 1);
+        bytes, total_non_unique_sz_count, total_non_unique_sz_count / 20 + 1);
 
         auto iter = file_size_table.begin();
         auto end_iter = file_size_table.end();

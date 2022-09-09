@@ -233,23 +233,23 @@ vector<DuplicateVector> find_duplicates_map_two(const ArgMap &cl_args)
         ++number_of_path;
     }
     
-    size_t total_count = sm.get_count();
+    const size_t total_count = sm.get_count();
     const uintmax_t total_size = sm.get_size();
     cout << "Counted " << total_count << " files occupying "
             << format_bytes(total_size) << "." << endl;
 
+    size_t no_fls_with_uniq_sz = 0;
+
     { // Files with unique size can't have duplicates
         auto same_hash_iter = file_size_table.begin();
         auto end_iter = file_size_table.end();
-
-        size_t no_unique_file_sizes = 0;
 
         for(; same_hash_iter != end_iter; )
         {
             if (same_hash_iter->second.size() == 1) // Unique size
             {
                 same_hash_iter = file_size_table.erase(same_hash_iter);
-                ++no_unique_file_sizes;
+                ++no_fls_with_uniq_sz;
             }
             else
             {
@@ -257,10 +257,10 @@ vector<DuplicateVector> find_duplicates_map_two(const ArgMap &cl_args)
             }
         }
 
-        cout << "Discarded " << no_unique_file_sizes << " files with unique "
+        cout << "Discarded " << no_fls_with_uniq_sz << " files with unique "
         "size from deduplication.\n";
-        total_count -= no_unique_file_sizes;
     }
+    const size_t total_non_unique_sz_count = total_count - no_fls_with_uniq_sz;
 
     ShortTable<T> short_table;
     LongTable<T> long_table;
@@ -270,8 +270,9 @@ vector<DuplicateVector> find_duplicates_map_two(const ArgMap &cl_args)
     const uintmax_t bytes = std::get<uintmax_t>(cl_args.at("bytes"));
 
     { // The deduplication
-        DedupManager<T> dm = DedupManager<T>(short_table, 
-        bytes, total_count, total_count / 20 + 1, long_table);
+        DedupManager<T> dm = DedupManager<T>(short_table, bytes, 
+        total_non_unique_sz_count, total_non_unique_sz_count / 20 + 1,
+        long_table);
 
         auto iter = file_size_table.begin();
         auto end_iter = file_size_table.end();
