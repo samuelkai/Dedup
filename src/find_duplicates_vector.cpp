@@ -179,9 +179,9 @@ vector<DuplicateVector> find_duplicates_vector(const ArgMap &cl_args)
             same_hashes.push_back(dedup_vector[i]);
             size_t j = 0;
             for (; i+j+1 < dedup_vector.size() && 
-                dedup_vector[i+j].first == dedup_vector[i+j+1].first; j++)
+                same_hashes.back().first == dedup_vector[i+j+1].first; j++)
             {
-                same_hashes.push_back(dedup_vector[i+j+1]);
+                same_hashes.push_back(std::move(dedup_vector[i+j+1]));
             }
             i += j;
             vec_of_same_hashes.push_back(same_hashes);
