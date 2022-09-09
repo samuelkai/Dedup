@@ -51,9 +51,9 @@ DuplicateVector find_duplicate_file(string path, DedupVector &same_beginning)
 }
 
 /**
- * Inserts the given File into the deduplication table.
+ * Inserts the given File into the deduplication vector.
  */
-void insert_into_dedup_table(const File &file, 
+void insert_into_dedup_vector(const File &file, 
                              DedupVector &dedup_vector, uintmax_t bytes)
 {   
     const BeginningData beginning = read_file_beginning(file.path, bytes);
@@ -80,7 +80,7 @@ class DedupManager {
         {
             try
             {
-                insert_into_dedup_table(file, dedup_vector, bytes);
+                insert_into_dedup_vector(file, dedup_vector, bytes);
             }
             catch(const fs::filesystem_error &e)
             {
@@ -135,7 +135,8 @@ vector<DuplicateVector> find_duplicates_vector_no_hash(const ArgMap &cl_args)
     DedupVector dedup_vector;
     dedup_vector.reserve(total_non_unique_sz_count);
 
-    { // The deduplication
+    { // Collect all files in the deduplication vector and sort them according 
+      // to the beginning of their data.
         DedupManager dm = DedupManager(dedup_vector, 
         bytes, total_non_unique_sz_count, total_non_unique_sz_count / 20 + 1);
 

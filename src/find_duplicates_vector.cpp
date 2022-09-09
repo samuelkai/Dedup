@@ -54,10 +54,10 @@ DuplicateVector find_duplicate_file(string path,
 }
 
 /**
- * Inserts the given File into the deduplication table.
+ * Inserts the given File into the deduplication vector.
  */
 template <typename T>
-void insert_into_dedup_table(const File &file, 
+void insert_into_dedup_vector(const File &file, 
                              DedupVector<T> &dedup_vector, uintmax_t bytes)
 {   
     // Calculate the hash and truncate it to the specified length
@@ -86,7 +86,7 @@ class DedupManager {
         {
             try
             {
-                insert_into_dedup_table(file, dedup_vector, bytes);
+                insert_into_dedup_vector(file, dedup_vector, bytes);
             }
             catch(const fs::filesystem_error &e)
             {
@@ -143,7 +143,8 @@ vector<DuplicateVector> find_duplicates_vector(const ArgMap &cl_args)
     DedupVector<T> dedup_vector;
     dedup_vector.reserve(total_non_unique_sz_count);
 
-    { // The deduplication
+    { // Collect all files in the deduplication vector and sort them according 
+      // to the hash of the beginning of their data.
         DedupManager<T> dm = DedupManager<T>(dedup_vector, 
         bytes, total_non_unique_sz_count, total_non_unique_sz_count / 20 + 1);
 
