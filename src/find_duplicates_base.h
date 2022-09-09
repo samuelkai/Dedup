@@ -13,37 +13,16 @@
  */
 using FileSizeTable = std::unordered_map<uintmax_t, std::vector<File>>;
 
-// /**
-//  * Prints the progress on finding duplicates.
-//  */
-// template <typename T>
-// void print_progress(DedupManager<T> &op);
-
-class ScanManager {
-    // size_t can store the maximum size of a theoretically possible object 
-    // of any type. Because we store Files in objects, we use size_t.
-    size_t count;
-    // uintmax_t is the maximum width unsigned integer type. We use it in 
-    // order to not limit file size by type choice.
-    uintmax_t size;
-    FileSizeTable &file_size_table;
-
-    public:
-        ScanManager(FileSizeTable &f);
-
-        void insert(const std::filesystem::directory_entry &entry,
-            size_t number_of_path);
-
-        size_t get_count() const;
-        uintmax_t get_size() const;
-};
+/**
+ * Scans all the paths that were given as command line arguments.
+ */
+size_t scan_all_paths(FileSizeTable &file_size_table, const ArgMap &cl_args);
 
 /**
- * Traverses the given path and collects information about files.
- * Directories are traversed recursively if wanted.
+ * Files with unique size can't have duplicates. This function removes them
+ * from the deduplication.
  */
-void scan_path(const std::filesystem::path &path, bool recurse, ScanManager &sm, 
-               size_t number_of_path);
+size_t skip_files_with_unique_size(FileSizeTable &file_size_table);
 
 /**
  * Prints the progress on finding duplicates.

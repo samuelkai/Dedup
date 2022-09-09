@@ -212,54 +212,15 @@ class DedupManager {
 template <typename T>
 vector<DuplicateVector> find_duplicates_map_two(const ArgMap &cl_args)
 {    
-    // Start by scanning the paths for files
     FileSizeTable file_size_table;
-    cout << "Counting number and size of files in given paths..." << endl;
-    ScanManager sm = ScanManager(file_size_table);
-    
-    const bool recurse = std::get<bool>(cl_args.at("recurse"));
-    size_t number_of_path = 0; // Used in deciding which file to keep when 
-                               // deleting or linking without prompting
-    for (const auto &path : std::get<vector<fs::path>>(cl_args.at("paths")))
-    {
-        try
-        {
-            scan_path(path, recurse, sm, number_of_path);
-        }
-        catch(const std::exception &e)
-        {
-            cerr << e.what() << '\n';
-        }
-        ++number_of_path;
-    }
-    
-    const size_t total_count = sm.get_count();
-    const uintmax_t total_size = sm.get_size();
-    cout << "Counted " << total_count << " files occupying "
-            << format_bytes(total_size) << "." << endl;
 
-    size_t no_fls_with_uniq_sz = 0;
+    // Start by scanning the paths for files
+    const size_t total_count = scan_all_paths(file_size_table, cl_args);
 
-    { // Files with unique size can't have duplicates
-        auto same_hash_iter = file_size_table.begin();
-        auto end_iter = file_size_table.end();
+    // Files with unique size can't have duplicates
+    const size_t no_fls_with_uniq_sz = 
+        skip_files_with_unique_size(file_size_table);
 
-        for(; same_hash_iter != end_iter; )
-        {
-            if (same_hash_iter->second.size() == 1) // Unique size
-            {
-                same_hash_iter = file_size_table.erase(same_hash_iter);
-                ++no_fls_with_uniq_sz;
-            }
-            else
-            {
-                ++same_hash_iter;
-            }
-        }
-
-        cout << "Discarded " << no_fls_with_uniq_sz << " files with unique "
-        "size from deduplication.\n";
-    }
     const size_t total_non_unique_sz_count = total_count - no_fls_with_uniq_sz;
 
     ShortTable<T> short_table;
