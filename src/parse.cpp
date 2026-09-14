@@ -294,7 +294,7 @@ ArgMap parse(int argc, char* argv[])
 
         return cl_args;
     }
-    catch (const cxxopts::OptionException& e)
+    catch (const cxxopts::exceptions::exception& e)
     {
         cerr << "Error parsing options: " << e.what() << '\n';
         throw EndException(1);
