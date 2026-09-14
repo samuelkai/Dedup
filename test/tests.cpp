@@ -13,6 +13,7 @@
 
 using std::string;
 using std::vector;
+using namespace std::chrono_literals;
 
 namespace fs = std::filesystem;
 
@@ -54,7 +55,7 @@ ino_t get_inode(fs::path path)
     return s.st_ino;
 }
 
-TEST_CASE( "test_delete" )
+fs::path create_copies_in_same_dir() 
 {
     const fs::path test_dir_path = create_test_dir(); 
 
@@ -62,8 +63,21 @@ TEST_CASE( "test_delete" )
     outfile << "Test text!" << std::endl;
     outfile.close();
 
-    fs::copy_file(test_dir_path / "test.txt", test_dir_path / "test2.txt");
-    fs::copy_file(test_dir_path / "test.txt", test_dir_path / "test3.txt");
+    for (size_t i = 2; i <= 3; i++)
+    {
+        const fs::path p = test_dir_path / ("test" + std::to_string(i) + ".txt");
+        fs::copy_file(test_dir_path / "test.txt", p); 
+        
+        std::filesystem::last_write_time(p, 
+            std::filesystem::last_write_time(p) + 1s);
+    }
+
+    return test_dir_path;
+}
+
+TEST_CASE( "test_delete" )
+{
+    const fs::path test_dir_path = create_copies_in_same_dir();
 
     std::vector<std::string> arguments = 
         {"dedup", "-dd", test_dir_path.string()};
@@ -79,14 +93,7 @@ TEST_CASE( "test_delete" )
 
 TEST_CASE( "test_hardlink" )
 {
-    const fs::path test_dir_path = create_test_dir(); 
-
-    std::ofstream outfile (test_dir_path / "test.txt");
-    outfile << "Test text!" << std::endl;
-    outfile.close();
-
-    fs::copy_file(test_dir_path / "test.txt", test_dir_path / "test2.txt");
-    fs::copy_file(test_dir_path / "test.txt", test_dir_path / "test3.txt");
+    const fs::path test_dir_path = create_copies_in_same_dir();
 
     std::vector<std::string> arguments = 
         {"dedup", "-k", test_dir_path.string()};
@@ -104,14 +111,7 @@ TEST_CASE( "test_hardlink" )
 
 TEST_CASE( "test_symlink" )
 {
-    const fs::path test_dir_path = create_test_dir(); 
-
-    std::ofstream outfile (test_dir_path / "test.txt");
-    outfile << "Test text!" << std::endl;
-    outfile.close();
-
-    fs::copy_file(test_dir_path / "test.txt", test_dir_path / "test2.txt");
-    fs::copy_file(test_dir_path / "test.txt", test_dir_path / "test3.txt");
+    const fs::path test_dir_path = create_copies_in_same_dir();
 
     std::vector<std::string> arguments = 
         {"dedup", "-y", test_dir_path.string()};
@@ -179,12 +179,10 @@ TEST_CASE( "test_priority_age" )
                   test_dir_path / "test3.txt");
 
     fs::last_write_time(test_dir_path / "test.txt", 
-        fs::last_write_time(test_dir_path / "test2.txt") + 
-        std::chrono::seconds(1));
+        fs::last_write_time(test_dir_path / "test2.txt") + 1s);
 
     fs::last_write_time(test_dir_path / "test3.txt", 
-        fs::last_write_time(test_dir_path / "test2.txt") + 
-        std::chrono::seconds(1));
+        fs::last_write_time(test_dir_path / "test2.txt") + 1s);
 
     // Now test2.txt has the earliest modification time
     
